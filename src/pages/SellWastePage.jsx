@@ -29,6 +29,7 @@ import "../assets/scss/style.scss";
 import "../assets/scss/HomePage.modern.scss";
 import "../assets/scss/SellWastePage.scss";
 import ListingCard from "../components/ListingCard";
+import '../assets/scss/ListingModal.scss';
 
 export default function SellWastePage() {
   const navigate = useNavigate();
@@ -37,6 +38,8 @@ export default function SellWastePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSeller, setIsSeller] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedListing, setSelectedListing] = useState(null);
 
   useEffect(() => {
     // Check if user is a seller
@@ -49,7 +52,14 @@ export default function SellWastePage() {
 
   const fetchListings = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BASE_URL}/listings`);
+      const res = await axios.get(`${import.meta.env.VITE_BASE_URL}/listings/my`,
+      {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       
       let allListings = [];
       if (Array.isArray(res.data)) {
@@ -74,6 +84,13 @@ export default function SellWastePage() {
       setIsLoading(false);
     }
   };
+  
+const statesWithCities = {
+  Maharashtra: ["Mumbai", "Pune", "Nagpur"],
+  Karnataka: ["Bangalore", "Mysore", "Mangalore"],
+  Gujarat: ["Ahmedabad", "Surat", "Vadodara"],
+  Rajasthan: ["Jaipur", "Udaipur", "Jodhpur"],
+};
 
   useEffect(() => {
     if (currentUser !== null) {
@@ -284,6 +301,23 @@ export default function SellWastePage() {
       {!isSeller && <HowToSellSection />}
 
       <Footer />
+      
+      {/* Edit Listing Modal */}
+      {isEditModalOpen && (
+        <EditListingModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          listing={selectedListing}
+          onSave={(updatedListing) => {
+            setListings((prev) =>
+              prev.map((listing) =>
+                listing.id === updatedListing.id ? updatedListing : listing
+              )
+            );
+          }}
+          statesWithCities={statesWithCities} // Ensure this is defined
+        />
+      )}
     </div>
   );
 }
@@ -321,29 +355,20 @@ const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
 };
 
 const ListingsGrid = ({ listings, isSeller }) => {
-  const navigate = useNavigate();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedListing, setSelectedListing] = useState(null);
 
   const handleEdit = (listing) => {
-    navigate('/seller-listing', { state: { editListing: listing } });
+    setSelectedListing(listing);
+    setIsEditModalOpen(true);
   };
 
-  const handleDelete = async (listingId) => {
-    if (!window.confirm('Are you sure you want to delete this listing?')) {
-      return;
-    }
-
-    try {
-      await axios.delete(`${import.meta.env.VITE_BASE_URL}/listings/${listingId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      alert('Listing deleted successfully!');
-      window.location.reload(); // Refresh to update listings
-    } catch (err) {
-      console.error("Error deleting listing:", err);
-      alert('Failed to delete listing. Please try again.');
-    }
+  const handleSave = (updatedListing) => {
+    setListings((prevListings) =>
+      prevListings.map((item) =>
+        item.id === updatedListing.id ? updatedListing : item
+      )
+    );
   };
 
   if (listings.length === 0) {
@@ -373,6 +398,12 @@ const ListingsGrid = ({ listings, isSeller }) => {
           )}
         </div>
       ))}
+      <EditListingModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        listing={selectedListing}
+        onSave={handleSave}
+      />
     </div>
   );
 };
@@ -505,3 +536,145 @@ const HowToSellSection = () => {
     </section>
   );
 };
+
+const EditListingModal = ({ isOpen, onClose, listing, onSave, statesWithCities = {} }) => {
+  const [formData, setFormData] = useState({
+    price: listing?.price || "",
+    state: listing?.state || "",
+    city: listing?.city || "",
+    description: listing?.description || "",
+  });
+
+  // Update cities when the state changes
+  const handleStateChange = (e) => {
+    const selectedState = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      state: selectedState,
+      city: statesWithCities[selectedState]?.[0] || "", // Default to the first city
+    }));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const updatedListing = {
+        ...listing,
+        price: formData.price,
+        state: formData.state,
+        city: formData.city,
+        description: formData.description,
+      };
+
+      // Call the backend API to update the listing
+      const response = await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/listings/${listing.id}`,
+        updatedListing,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        alert("Listing updated successfully!");
+        onSave(updatedListing); // Update the parent state
+        onClose(); // Close the modal
+      } else {
+        alert("Failed to update the listing. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error updating listing:", err);
+      alert("An error occurred while updating the listing. Please try again.");
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <button className="modal-close-btn" onClick={onClose}>
+          &times;
+        </button>
+        <h3 className="modal-title">Edit Listing</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Price (₹/kg)</label>
+            <input
+              type="number"
+              name="price"
+              value={formData.price}
+              onChange={handleInputChange}
+              required
+              placeholder="Enter price per kg"
+            />
+          </div>
+          <div className="form-group">
+            <label>State</label>
+            <select
+              name="state"
+              value={formData.state}
+              onChange={handleStateChange}
+              required
+            >
+              <option value="" disabled>
+                Select State
+              </option>
+              {Object.keys(statesWithCities).map((state) => (
+                <option key={state} value={state}>
+                  {state}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>City</label>
+            <select
+              name="city"
+              value={formData.city}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="" disabled>
+                Select City
+              </option>
+              {statesWithCities[formData.state]?.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Description</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              rows="4"
+              placeholder="Enter a description for the listing"
+            />
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn-cancel" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-submit">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+

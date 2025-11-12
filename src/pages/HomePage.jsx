@@ -537,7 +537,7 @@ const ListingsGrid = ({ listings }) => {
     <div className="listings-grid my-5 w-100">
       <div className="row g-4 w-100">
         {listingsArray.map(listing => (
-          <div key={listing.id} className="col-md-4">
+          <div key={listing.id} className="col-md-12">
             <ListingCard listing={listing} />
           </div>
         ))}
