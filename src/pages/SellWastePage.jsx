@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { authUtils } from "../utils/auth";
-import { 
-  FaRecycle, 
-  FaPlusCircle, 
-  FaFilter, 
-  FaSpinner, 
-  FaBoxes, 
-  FaLeaf, 
+import {
+  FaRecycle,
+  FaPlusCircle,
+  FaFilter,
+  FaSpinner,
+  FaBoxes,
+  FaLeaf,
   FaShoppingCart,
   FaIndustry,
   FaNewspaper,
@@ -22,14 +22,14 @@ import {
   FaClock,
   FaStar,
   FaTimes,
-  FaEdit
+  FaEdit,
 } from "react-icons/fa";
-import axios from 'axios';
+import axios from "axios";
 import "../assets/scss/style.scss";
 import "../assets/scss/HomePage.modern.scss";
 import "../assets/scss/SellWastePage.scss";
 import ListingCard from "../components/ListingCard";
-import '../assets/scss/ListingModal.scss';
+import "../assets/scss/ListingModal.scss";
 
 export default function SellWastePage() {
   const navigate = useNavigate();
@@ -46,21 +46,22 @@ export default function SellWastePage() {
     if (authUtils.isAuthenticated()) {
       const user = authUtils.getCurrentUser();
       setCurrentUser(user);
-      setIsSeller(user.role?.toLowerCase() === 'seller');
+      setIsSeller(user.role?.toLowerCase() === "seller");
     }
   }, []);
 
   const fetchListings = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BASE_URL}/listings/my`,
-      {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/listings/my`,
+        {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
             "Content-Type": "application/json",
           },
         }
       );
-      
+
       let allListings = [];
       if (Array.isArray(res.data)) {
         allListings = res.data;
@@ -71,7 +72,9 @@ export default function SellWastePage() {
       // If user is a seller, filter to show only their listings
       if (isSeller && currentUser) {
         const userListings = allListings.filter(
-          listing => listing.sellerId === currentUser.id || listing.seller_id === currentUser.id
+          (listing) =>
+            listing.sellerId === currentUser.id ||
+            listing.seller_id === currentUser.id
         );
         setListings(userListings);
       } else {
@@ -84,14 +87,19 @@ export default function SellWastePage() {
       setIsLoading(false);
     }
   };
-  
-const statesWithCities = {
-  Maharashtra: ["Mumbai", "Pune", "Nagpur"],
-  Karnataka: ["Bangalore", "Mysore", "Mangalore"],
-  Gujarat: ["Ahmedabad", "Surat", "Vadodara"],
-  Rajasthan: ["Jaipur", "Udaipur", "Jodhpur"],
-};
 
+const statesWithCities = {
+    "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Tirupati", "Kakinada"],
+    "Delhi": ["New Delhi", "North Delhi", "South Delhi", "West Delhi", "East Delhi"],
+    "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
+    "Haryana": ["Faridabad", "Gurugram", "Panipat", "Ambala", "Karnal"],
+    "Karnataka": ["Bangalore", "Mysore", "Mangalore", "Hubli", "Belgaum"],
+    "Kerala": ["Kochi", "Thiruvananthapuram", "Kozhikode", "Thrissur", "Kollam"],
+    "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain"],
+    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad"],
+    "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Chandigarh"],
+    "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Bikaner", "Ajmer"],
+  };
   useEffect(() => {
     if (currentUser !== null) {
       fetchListings();
@@ -107,13 +115,13 @@ const statesWithCities = {
   const handleCreateListing = () => {
     if (!authUtils.isAuthenticated()) {
       alert("Please login to create a listing");
-      navigate('/login');
+      navigate("/login");
       return;
     }
-    
+
     const user = authUtils.getCurrentUser();
-    if (user.role?.toLowerCase() === 'seller') {
-      navigate('/seller-listing');
+    if (user.role?.toLowerCase() === "seller") {
+      navigate("/seller-dashboard");
     } else {
       alert("Only sellers can create listings");
     }
@@ -122,27 +130,58 @@ const statesWithCities = {
   const handleBecomeSeller = () => {
     if (!authUtils.isAuthenticated()) {
       alert("Please login first to become a seller");
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
     const user = authUtils.getCurrentUser();
-    
+
     // Check if user is already a seller
-    if (user.role?.toLowerCase() === 'seller') {
+    if (user.role?.toLowerCase() === "seller") {
       alert("You are already a seller! You can create listings now.");
-      navigate('/seller-listing');
+      navigate("/seller-listing");
       return;
     }
-    
+
     // Navigate to license page for buyers who want to become sellers
-    navigate('/license');
+    navigate("/license");
+  };
+
+  // --- LOGIC MOVED TO PARENT ---
+  // Opens the modal and sets the selected listing
+  const handleEditClick = (listing) => {
+    setSelectedListing(listing);
+    setIsEditModalOpen(true);
+  };
+
+  // Handles the deletion of a listing
+  const handleDelete = async (listingId) => {
+    if (!window.confirm("Are you sure you want to delete this listing?")) {
+      return;
+    }
+
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_BASE_URL}/listings/${listingId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      alert("Listing deleted successfully!");
+      // Update state by removing the deleted listing
+      setListings((prev) => prev.filter((listing) => listing.id !== listingId));
+    } catch (err) {
+      console.error("Error deleting listing:", err);
+      alert("Failed to delete listing. Please try again.");
+    }
   };
 
   return (
     <div className="recycle-app sell-waste-page">
       <Navbar />
-      
+
       {/* Hero Section */}
       <section className="sell-hero">
         <div className="hero-bg-elements">
@@ -152,49 +191,66 @@ const statesWithCities = {
           <div className="gradient-orb orb-1"></div>
           <div className="gradient-orb orb-2"></div>
         </div>
-        
+
         <div className="hero-content">
           <div className="hero-badge">
             <FaRecycle className="badge-icon" />
-            <span>{isSeller ? "Your Seller Dashboard" : "Waste to Worth Platform"}</span>
+            <span>
+              {isSeller ? "Your Seller Dashboard" : "Waste to Worth Platform"}
+            </span>
           </div>
-          
+
           <h1 className="hero-title">
             {isSeller ? (
-              <>Your <span className="gradient-text">Listings</span> Portfolio</>
+              <>
+                Your <span className="gradient-text">Listings</span> Portfolio
+              </>
             ) : (
-              <>Transform Your Waste Into <span className="gradient-text">Profit</span></>
+              <>
+                Transform Your Waste Into <span className="gradient-text">Profit</span>
+              </>
             )}
           </h1>
-          
+
           <p className="hero-subtitle">
-            {isSeller 
+            {isSeller
               ? `Manage your ${listings.length} active listings, track performance, and reach more buyers.`
-              : "Join 1000+ sellers earning revenue from recyclable materials. List instantly, get discovered by verified buyers, and make a positive environmental impact."
-            }
+              : "Join 1000+ sellers earning revenue from recyclable materials. List instantly, get discovered by verified buyers, and make a positive environmental impact."}
           </p>
-          
+
           <div className="hero-cta">
             {isSeller ? (
               <>
-                <button className="btn-modern-primary" onClick={handleCreateListing}>
+                <button
+                  className="btn-modern-primary"
+                  onClick={handleCreateListing}
+                >
                   <FaPlusCircle className="btn-icon" />
                   Create New Listing
                   <div className="btn-shimmer"></div>
                 </button>
-                <button className="btn-modern-secondary" onClick={() => navigate('/seller-dashboard')}>
+                <button
+                  className="btn-modern-secondary"
+                  onClick={() => navigate("/seller-dashboard")}
+                >
                   <FaChartLine className="btn-icon" />
                   View Analytics
                 </button>
               </>
             ) : (
               <>
-                <button className="btn-modern-primary" onClick={handleCreateListing}>
+                <button
+                  className="btn-modern-primary"
+                  onClick={handleCreateListing}
+                >
                   <FaPlusCircle className="btn-icon" />
                   Create Free Listing
                   <div className="btn-shimmer"></div>
                 </button>
-                <button className="btn-modern-secondary" onClick={handleBecomeSeller}>
+                <button
+                  className="btn-modern-secondary"
+                  onClick={handleBecomeSeller}
+                >
                   <FaUserCheck className="btn-icon" />
                   Become a Seller
                 </button>
@@ -217,7 +273,11 @@ const statesWithCities = {
                   <FaChartLine className="stat-icon" />
                   <div className="stat-content">
                     <div className="stat-number">
-                      {listings.filter(l => l.status?.toLowerCase() === 'active').length}
+                      {
+                        listings.filter(
+                          (l) => l.status?.toLowerCase() === "active"
+                        ).length
+                      }
                     </div>
                     <div className="stat-label">Active Now</div>
                   </div>
@@ -226,7 +286,11 @@ const statesWithCities = {
                   <FaTruck className="stat-icon" />
                   <div className="stat-content">
                     <div className="stat-number">
-                      {listings.filter(l => l.status?.toLowerCase() === 'sold').length}
+                      {
+                        listings.filter(
+                          (l) => l.status?.toLowerCase() === "sold"
+                        ).length
+                      }
                     </div>
                     <div className="stat-label">Sold Items</div>
                   </div>
@@ -269,15 +333,15 @@ const statesWithCities = {
         <div className="container">
           <div className="section-header-modern">
             <h2 className="section-title-modern">
-              {isSeller ? "Your" : "Active"} <span className="gradient-text">
+              {isSeller ? "Your" : "Active"}{" "}
+              <span className="gradient-text">
                 {isSeller ? "Listings" : "Marketplace"}
               </span>
             </h2>
             <p className="section-subtitle-modern">
-              {isSeller 
+              {isSeller
                 ? "Manage, edit, and track your waste material listings"
-                : "Discover what other sellers are offering and get inspired"
-              }
+                : "Discover what other sellers are offering and get inspired"}
             </p>
           </div>
 
@@ -292,7 +356,13 @@ const statesWithCities = {
               <p>Loading {isSeller ? "your" : "marketplace"} listings...</p>
             </div>
           ) : (
-            <ListingsGrid listings={filteredListings} isSeller={isSeller} />
+            // --- PROPS PASSED DOWN ---
+            <ListingsGrid
+              listings={filteredListings}
+              isSeller={isSeller}
+              onEditClick={handleEditClick}
+              onDeleteClick={handleDelete}
+            />
           )}
         </div>
       </section>
@@ -301,8 +371,9 @@ const statesWithCities = {
       {!isSeller && <HowToSellSection />}
 
       <Footer />
-      
-      {/* Edit Listing Modal */}
+
+      {/* --- THIS IS NOW THE ONLY MODAL --- */}
+      {/* It will open when isEditModalOpen is true */}
       {isEditModalOpen && (
         <EditListingModal
           isOpen={isEditModalOpen}
@@ -314,8 +385,9 @@ const statesWithCities = {
                 listing.id === updatedListing.id ? updatedListing : listing
               )
             );
+            setIsEditModalOpen(false); // Close modal on save
           }}
-          statesWithCities={statesWithCities} // Ensure this is defined
+          statesWithCities={statesWithCities} // Prop is correctly passed
         />
       )}
     </div>
@@ -330,7 +402,7 @@ const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
     { id: "paper", label: "Paper", icon: FaNewspaper, color: "#f59e0b" },
     { id: "glass", label: "Glass", icon: FaWineBottle, color: "#06b6d4" },
     { id: "organic", label: "Organic", icon: FaLeaf, color: "#10b981" },
-    { id: "electronic", label: "E-Waste", icon: FaMicrochip, color: "#ef4444" }
+    { id: "electronic", label: "E-Waste", icon: FaMicrochip, color: "#ef4444" },
   ];
 
   return (
@@ -340,9 +412,11 @@ const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
         return (
           <button
             key={cat.id}
-            className={`category-btn-modern ${activeCategory === cat.id ? "active" : ""}`}
+            className={`category-btn-modern ${
+              activeCategory === cat.id ? "active" : ""
+            }`}
             onClick={() => setActiveCategory(cat.id)}
-            style={{ '--category-color': cat.color }}
+            style={{ "--category-color": cat.color }}
           >
             <IconComponent className="category-icon" />
             <span>{cat.label}</span>
@@ -354,29 +428,18 @@ const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
   );
 };
 
-const ListingsGrid = ({ listings, isSeller }) => {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedListing, setSelectedListing] = useState(null);
-
-  const handleEdit = (listing) => {
-    setSelectedListing(listing);
-    setIsEditModalOpen(true);
-  };
-
-  const handleSave = (updatedListing) => {
-    setListings((prevListings) =>
-      prevListings.map((item) =>
-        item.id === updatedListing.id ? updatedListing : item
-      )
-    );
-  };
-
+// --- SIMPLIFIED LISTINGSGRID ---
+const ListingsGrid = ({ listings, isSeller, onEditClick, onDeleteClick }) => {
   if (listings.length === 0) {
     return (
       <div className="no-listings">
         <FaBoxes className="no-listings-icon" />
         <h3>No listings found</h3>
-        <p>{isSeller ? "You haven't created any listings yet. Click 'Create New Listing' to get started!" : "Be the first to list your recyclable materials!"}</p>
+        <p>
+          {isSeller
+            ? "You haven't created any listings yet. Click 'Create New Listing' to get started!"
+            : "Be the first to list your recyclable materials!"}
+        </p>
       </div>
     );
   }
@@ -387,23 +450,25 @@ const ListingsGrid = ({ listings, isSeller }) => {
         <div key={listing.id} className="listing-card-wrapper">
           <ListingCard listing={listing} />
           {isSeller && (
-            <div className="seller-actions">
-              <button className="action-btn edit-btn" onClick={() => handleEdit(listing)}>
-                <FaEdit /> Edit
+            <div className="seller-actions mt-2">
+              <button
+                className="action-btn edit-btn"
+                onClick={() => onEditClick(listing)}
+              >
+                {/* <FaEdit /> */}
+                 Edit
               </button>
-              <button className="action-btn delete-btn" onClick={() => handleDelete(listing.id)}>
-                <FaTimes /> Delete
+              <button
+                className="action-btn delete-btn"
+                onClick={() => onDeleteClick(listing.id)}
+              >
+                {/* <FaTimes />  */}
+                Delete
               </button>
             </div>
           )}
         </div>
       ))}
-      <EditListingModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        listing={selectedListing}
-        onSave={handleSave}
-      />
     </div>
   );
 };
@@ -413,27 +478,30 @@ const WhySellSection = () => {
     {
       icon: FaDollarSign,
       title: "Competitive Pricing",
-      description: "AI-powered pricing recommendations ensure you get the best market rates for your materials",
-      color: "#10b981"
+      description:
+        "AI-powered pricing recommendations ensure you get the best market rates for your materials",
+      color: "#10b981",
     },
     {
       icon: FaUserCheck,
       title: "Verified Buyers",
-      description: "Connect only with verified and trusted buyers for secure transactions",
-      color: "#3b82f6"
+      description:
+        "Connect only with verified and trusted buyers for secure transactions",
+      color: "#3b82f6",
     },
     {
       icon: FaTruck,
       title: "Fast Pickup",
       description: "Streamlined logistics with pickup options from your doorstep",
-      color: "#f59e0b"
+      color: "#f59e0b",
     },
     {
       icon: FaClock,
       title: "Quick Listings",
-      description: "List your materials in under 2 minutes with our smart listing form",
-      color: "#8b5cf6"
-    }
+      description:
+        "List your materials in under 2 minutes with our smart listing form",
+      color: "#8b5cf6",
+    },
   ];
 
   return (
@@ -445,7 +513,8 @@ const WhySellSection = () => {
             Why Sell With Us
           </span>
           <h2 className="section-title-modern">
-            The Best Platform for <span className="gradient-text">Waste Sellers</span>
+            The Best Platform for{" "}
+            <span className="gradient-text">Waste Sellers</span>
           </h2>
           <p className="section-subtitle-modern">
             Join thousands of sellers earning sustainable revenue
@@ -456,10 +525,10 @@ const WhySellSection = () => {
           {benefits.map((benefit, index) => {
             const IconComponent = benefit.icon;
             return (
-              <div 
+              <div
                 key={index}
                 className="benefit-card"
-                style={{ '--benefit-color': benefit.color }}
+                style={{ "--benefit-color": benefit.color }}
               >
                 <div className="benefit-icon">
                   <IconComponent />
@@ -480,24 +549,27 @@ const HowToSellSection = () => {
     {
       number: "01",
       title: "Create Your Listing",
-      description: "Use our desktop app to scan and categorize your waste with AI, or manually create a listing on the web",
+      description:
+        "Use our desktop app to scan and categorize your waste with AI, or manually create a listing on the web",
       icon: FaPlusCircle,
-      color: "#3b82f6"
+      color: "#3b82f6",
     },
     {
       number: "02",
       title: "Get Buyer Requests",
-      description: "Verified buyers browse and send purchase requests with their offers",
+      description:
+        "Verified buyers browse and send purchase requests with their offers",
       icon: FaShoppingCart,
-      color: "#10b981"
+      color: "#10b981",
     },
     {
       number: "03",
       title: "Complete Transaction",
-      description: "Accept the best offer, schedule pickup, and receive payment securely",
+      description:
+        "Accept the best offer, schedule pickup, and receive payment securely",
       icon: FaDollarSign,
-      color: "#8b5cf6"
-    }
+      color: "#8b5cf6",
+    },
   ];
 
   return (
@@ -516,10 +588,10 @@ const HowToSellSection = () => {
           {steps.map((step, index) => {
             const IconComponent = step.icon;
             return (
-              <div 
+              <div
                 key={index}
                 className="step-card"
-                style={{ '--step-color': step.color }}
+                style={{ "--step-color": step.color }}
               >
                 <div className="step-number">{step.number}</div>
                 <div className="step-icon">
@@ -537,13 +609,33 @@ const HowToSellSection = () => {
   );
 };
 
-const EditListingModal = ({ isOpen, onClose, listing, onSave, statesWithCities = {} }) => {
+// --- MODAL COMPONENT (UNCHANGED, BUT NOW WORKS) ---
+const EditListingModal = ({
+  isOpen,
+  onClose,
+  listing,
+  onSave,
+  statesWithCities = {}, // Default value is important
+}) => {
+  // Add category to formData and initialize from listing
   const [formData, setFormData] = useState({
-    price: listing?.price || "",
+    category: listing?.category || "",
+    price: listing?.price_per_kg !== undefined && listing?.price_per_kg !== null ? listing.price_per_kg : "",
     state: listing?.state || "",
     city: listing?.city || "",
     description: listing?.description || "",
   });
+
+  // Ensure formData updates if a different listing is selected
+  useEffect(() => {
+    setFormData({
+      category: listing?.category || "",
+      price: listing?.price !== undefined && listing?.price !== null ? listing.price : "",
+      state: listing?.state || "",
+      city: listing?.city || "",
+      description: listing?.description || "",
+    });
+  }, [listing]);
 
   // Update cities when the state changes
   const handleStateChange = (e) => {
@@ -551,7 +643,7 @@ const EditListingModal = ({ isOpen, onClose, listing, onSave, statesWithCities =
     setFormData((prev) => ({
       ...prev,
       state: selectedState,
-      city: statesWithCities[selectedState]?.[0] || "", // Default to the first city
+      city: statesWithCities[selectedState]?.[0] || "",
     }));
   };
 
@@ -566,6 +658,7 @@ const EditListingModal = ({ isOpen, onClose, listing, onSave, statesWithCities =
     try {
       const updatedListing = {
         ...listing,
+        category: formData.category,
         price: formData.price,
         state: formData.state,
         city: formData.city,
@@ -599,6 +692,20 @@ const EditListingModal = ({ isOpen, onClose, listing, onSave, statesWithCities =
 
   if (!isOpen) return null;
 
+  // Category options (customize as needed)
+  const categoryOptions = [
+    { value: "PET", label: "PET - Polyethylene Terephthalate" },
+    { value: "HDPE", label: "HDPE - High-Density Polyethylene" },
+    { value: "LDPE", label: "LDPE - Low-Density Polyethylene" },
+    { value: "PVC", label: "PVC - Polyvinyl Chloride" },
+    { value: "PE", label: "PE - Polyethylene" },
+    { value: "metal", label: "Metal" },
+    { value: "paper", label: "Paper" },
+    { value: "glass", label: "Glass" },
+    { value: "organic", label: "Organic" },
+    { value: "electronic", label: "E-Waste" },
+  ];
+
   return (
     <div className="modal-overlay">
       <div className="modal-content">
@@ -608,11 +715,30 @@ const EditListingModal = ({ isOpen, onClose, listing, onSave, statesWithCities =
         <h3 className="modal-title">Edit Listing</h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
+            <label>Category</label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              required
+              disabled
+            >
+              <option value="" disabled>
+                Select Category
+              </option>
+              {categoryOptions.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
             <label>Price (₹/kg)</label>
             <input
               type="number"
               name="price"
-              value={formData.price}
+              value={formData.price_per_kg}
               onChange={handleInputChange}
               required
               placeholder="Enter price per kg"
@@ -677,4 +803,3 @@ const EditListingModal = ({ isOpen, onClose, listing, onSave, statesWithCities =
     </div>
   );
 };
-
