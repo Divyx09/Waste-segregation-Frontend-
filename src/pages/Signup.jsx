@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaLeaf, FaArrowRight, FaCheckCircle, FaUserPlus, FaUser, FaPhone } from 'react-icons/fa';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import '../styles/auth.css';
+import '../assets/scss/Auth.modern.scss';
 import EcoLogo from "../assets/eco-worth.png";
 import axios from 'axios';
 
 export default function Signup() {
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     agree: false
@@ -43,7 +50,9 @@ export default function Signup() {
       const signupData = {
         email: formData.email,
         password: formData.password,
-        role: 'buyer'
+        role: 'buyer',
+        name: formData.name || formData.email.split('@')[0],
+        phone: formData.phone || ''
       };
 
       const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/register`, signupData);
@@ -51,6 +60,20 @@ export default function Signup() {
       console.log("Signup response:", response.data);
 
       if (response.data && (response.data.success === true || response.status === 200)) {
+        // Save user data after successful signup
+        const userData = {
+          email: response.data.email || formData.email,
+          role: response.data.role || 'buyer',
+          name: response.data.name || formData.name || formData.email.split('@')[0],
+        };
+
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('authToken', response.data.access_token || 'temp-token');
+        localStorage.setItem('user', JSON.stringify(userData));
+
+        // Dispatch auth change event
+        window.dispatchEvent(new Event('authChange'));
+
         if (response.data.role === 'buyer') {
           navigate('/home');
         } else {
@@ -72,165 +95,214 @@ export default function Signup() {
   };
 
   return (
-    <div className="container-fluid vh-100">
-      <div className="row h-100">
+    <div className="auth-container-modern">
+      <div className="auth-grid">
         {/* Left - Signup Form */}
-        <div className="col-md-6 d-flex align-items-center justify-content-center">
-          <div style={{ width: '100%', maxWidth: '400px' }}>
-            <div className="text-center mb-4">
-              <div
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  backgroundColor: '#2ecc71',
-                  borderRadius: '50%',
-                  margin: '0 auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '22px',
-                  color: 'white'
-                }}
-              >
-                👤+
+        <div className="auth-form-section">
+          <div className="auth-form-wrapper">
+            <div className="auth-header">
+              <div className="auth-icon-wrapper signup">
+                <FaUserPlus className="auth-icon" />
               </div>
-              <h3 className="mt-3 fw-bold">Create Account</h3>
-              <p className="text-muted">Join our eco-friendly community today</p>
+              <h2 className="auth-title">Create Account</h2>
+              <p className="auth-subtitle">Join our eco-friendly community today</p>
             </div>
 
-            <form onSubmit={handleSignup}>
+            <form onSubmit={handleSignup} className="auth-form">
+              {/* Name */}
+              <div className="form-group-modern">
+                <label className="form-label-modern">
+                  <FaUser className="label-icon" />
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  className="form-input-modern"
+                  placeholder="Enter your full name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                />
+                <small className="form-hint">Optional - helps personalize your experience</small>
+              </div>
 
               {/* Email */}
-              <div className="mb-3">
+              <div className="form-group-modern">
+                <label className="form-label-modern">
+                  <FaEnvelope className="label-icon" />
+                  Email Address
+                </label>
                 <input
                   type="email"
                   name="email"
-                  className="form-control"
-                  placeholder="Email address"
+                  className="form-input-modern"
+                  placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleChange}
                   required
                   disabled={isLoading}
-                  style={{ borderRadius: '8px' }}
                 />
+              </div>
+
+              {/* Phone */}
+              <div className="form-group-modern">
+                <label className="form-label-modern">
+                  <FaPhone className="label-icon" />
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  className="form-input-modern"
+                  placeholder="Enter your phone number"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  pattern="[0-9]{10}"
+                  title="Please enter 10 digit phone number"
+                />
+                <small className="form-hint">Optional - 10 digits for better contact</small>
               </div>
 
               {/* Password */}
-              <div className="mb-1">
-                <input
-                  type="password"
-                  name="password"
-                  className="form-control"
-                  placeholder="Create password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  style={{ borderRadius: '8px' }}
-                />
+              <div className="form-group-modern">
+                <label className="form-label-modern">
+                  <FaLock className="label-icon" />
+                  Password
+                </label>
+                <div className="password-input-wrapper">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    className="form-input-modern"
+                    placeholder="Create a strong password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                <small className="form-hint">Minimum 6 characters</small>
               </div>
-              <small className="text-muted d-block mb-3">Min 6 characters</small>
 
               {/* Confirm Password */}
-              <div className="mb-3">
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  className="form-control"
-                  placeholder="Confirm password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  style={{ borderRadius: '8px' }}
-                />
+              <div className="form-group-modern">
+                <label className="form-label-modern">
+                  <FaLock className="label-icon" />
+                  Confirm Password
+                </label>
+                <div className="password-input-wrapper">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    className="form-input-modern"
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
               </div>
 
               {/* Terms */}
-              <div className="form-check mb-3">
+              <div className="form-check-modern">
                 <input
                   type="checkbox"
-                  className="form-check-input"
                   id="agree"
                   name="agree"
                   checked={formData.agree}
                   onChange={handleChange}
                   disabled={isLoading}
                 />
-                <label className="form-check-label" htmlFor="agree">
-                  I agree to the <Link to="#" className="text-primary text-decoration-none">Terms</Link>
+                <label htmlFor="agree">
+                  I agree to the <Link to="#" className="auth-link-primary">Terms & Conditions</Link>
                 </label>
               </div>
 
-              {/* Create Account Button */}
               <button
                 type="submit"
-                className="btn w-100 mb-3"
+                className="btn-auth-primary signup"
                 disabled={isLoading}
-                style={{
-                  background: 'linear-gradient(90deg, #00c853, #00e676)',
-                  color: 'white',
-                  borderRadius: '8px',
-                  fontWeight: 'bold'
-                }}
               >
                 {isLoading ? (
                   <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <span className="spinner-border spinner-border-sm me-2"></span>
                     Creating Account...
                   </>
                 ) : (
-                  <>👤+ Create Account</>
+                  <>
+                    Create Account
+                    <FaArrowRight className="btn-icon" />
+                  </>
                 )}
               </button>
 
-              {/* Divider */}
-              <div className="d-flex align-items-center mb-3">
-                <hr className="flex-grow-1" />
-                <span className="mx-2 text-muted">OR</span>
-                <hr className="flex-grow-1" />
+              <div className="auth-footer">
+                <p>
+                  Already have an account?{' '}
+                  <Link to="/login" className="auth-link-primary">Sign in</Link>
+                </p>
               </div>
-
-              <p className="text-muted text-center">
-                Already have an account?{' '}
-                <Link to="/login" className="text-primary text-decoration-none">Sign in</Link>
-              </p>
             </form>
+
+            <div className="auth-features">
+              <div className="feature-item">
+                <FaCheckCircle className="feature-icon" />
+                <span>Free Account</span>
+              </div>
+              <div className="feature-item">
+                <FaCheckCircle className="feature-icon" />
+                <span>Instant Access</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Right - Blue section with Logo & Circles */}
-        <div
-          className="col-md-6 d-none d-md-flex justify-content-center align-items-center position-relative"
-          style={{
-            backgroundColor: '#0D1B3E',
-            overflow: 'hidden'
-          }}
-        >
-          <img src={EcoLogo} alt="EcoLogo" height={350} />
-          {[
-            { color: '#1E2A5A', top: '10%', left: '15%', size: 100 },
-            { color: '#233B75', top: '25%', left: '60%', size: 80 },
-            { color: '#1A285A', top: '50%', left: '20%', size: 120 },
-            { color: '#2A4C9C', top: '70%', left: '50%', size: 90 },
-            { color: '#3366CC', top: '15%', left: '80%', size: 70 },
-            { color: '#4B79A1', top: '80%', left: '15%', size: 110 },
-            { color: '#2980B9', top: '60%', left: '75%', size: 100 }
-          ].map((circle, index) => (
-            <div
-              key={index}
-              style={{
-                position: 'absolute',
-                top: circle.top,
-                left: circle.left,
-                width: `${circle.size}px`,
-                height: `${circle.size}px`,
-                backgroundColor: circle.color,
-                borderRadius: '50%',
-                opacity: 0.9
-              }}
-            ></div>
-          ))}
+        {/* Right - Brand Section */}
+        <div className="auth-brand-section signup-brand">
+          <div className="brand-overlay"></div>
+          <div className="floating-shapes">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className={`floating-shape shape-${i}`}></div>
+            ))}
+          </div>
+          <div className="brand-content">
+            <img src={EcoLogo} alt="EcoWorth Logo" className="brand-logo" />
+            <h1 className="brand-title">Join EcoWorth</h1>
+            <p className="brand-description">
+              Be part of the circular economy revolution and make sustainability profitable
+            </p>
+            <div className="brand-benefits">
+              <div className="benefit-item">
+                <FaCheckCircle className="benefit-icon" />
+                <span>AI-Powered Pricing</span>
+              </div>
+              <div className="benefit-item">
+                <FaCheckCircle className="benefit-icon" />
+                <span>Verified Network</span>
+              </div>
+              <div className="benefit-item">
+                <FaCheckCircle className="benefit-icon" />
+                <span>Secure Transactions</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

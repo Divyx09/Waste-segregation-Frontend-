@@ -25,32 +25,41 @@ const HomePage = () => {
   // hrll9
 
   const fetchList = async () => {
-  try {
-    const res = await axios.get(`${import.meta.env.VITE_BASE_URL}/listings`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-        "Content-Type": "application/json",
-      },
-    });
-    console.log(res.data);
-    setListings(res.data);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setIsLoading(false); // ✅ Stop loading after fetching
-  }
-};
+    try {
+      // GET /listings is a PUBLIC endpoint - no auth required
+      const res = await axios.get(`${import.meta.env.VITE_BASE_URL}/listings`);
+      
+      console.log("Listings API Response:", res.data);
+      
+      // Handle different response structures
+      if (Array.isArray(res.data)) {
+        setListings(res.data);
+      } else if (res.data && Array.isArray(res.data.listings)) {
+        setListings(res.data.listings);
+      } else {
+        console.warn("Unexpected response format:", res.data);
+        setListings([]);
+      }
+    } catch (err) {
+      console.error("Error fetching listings:", err);
+      console.error("Error details:", err.response?.data);
+      setListings([]); // Set empty array on error
+    } finally {
+      setIsLoading(false); // ✅ Stop loading after fetching
+    }
+  };
 
   useEffect(() => {
-
-
     fetchList()
   }, []);
 
+  // Ensure listings is always an array before filtering
+  const listingsArray = Array.isArray(listings) ? listings : [];
+  
   const filteredListings =
     activeCategory === "all"
-      ? listings
-      : listings.filter((item) => item.category === activeCategory);
+      ? listingsArray
+      : listingsArray.filter((item) => item.category === activeCategory);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -85,6 +94,7 @@ const HomePage = () => {
       <Navbar />
       <HeroSection openModal={() => setShowModal(true)} />
 
+      {/* Sell Waste Section */}
       <div className="container">
         <CategoryFilter
           activeCategory={activeCategory}
@@ -104,8 +114,15 @@ const HomePage = () => {
         )}
       </div>
 
-      <HowItWorks />
-      <Footer />
+      {/* Buy Materials Section */}
+      <div>
+        <HowItWorks />
+      </div>
+
+      {/* About Section */}
+      <div>
+        <Footer />
+      </div>
 
       {/* Modern Create Listing Modal */}
       {showModal && (
@@ -502,17 +519,32 @@ const StatsBar = ({ listings }) => {
   );
 };
 
-const ListingsGrid = ({ listings }) => (
-  <div className="listings-grid my-5 w-100">
-    <div className="row g-4 w-100">
-      {listings.map(listing => (
-        <div key={listing.id} className="col-md-4">
-          <ListingCard listing={listing} />
-        </div>
-      ))}
+const ListingsGrid = ({ listings }) => {
+  // Safety check: ensure listings is an array
+  const listingsArray = Array.isArray(listings) ? listings : [];
+  
+  if (listingsArray.length === 0) {
+    return (
+      <div className="no-listings">
+        <FaInfoCircle className="info-icon" />
+        <h3>No listings available</h3>
+        <p>Be the first to create a listing!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="listings-grid my-5 w-100">
+      <div className="row g-4 w-100">
+        {listingsArray.map(listing => (
+          <div key={listing.id} className="col-md-4">
+            <ListingCard listing={listing} />
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const HowItWorks = () => {
   const steps = [

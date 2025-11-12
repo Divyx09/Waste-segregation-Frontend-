@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { statesWithCities } from "../assets/ConstantData";
 import Logo from "../assets/logo.png";
 import axios from "axios";
+import {
+  FaFilter, FaRecycle, FaChartLine, FaBoxOpen, FaMapMarkerAlt, 
+  FaBuilding, FaTags, FaCalendarAlt, FaSignOutAlt, FaPlusCircle,
+  FaTimes, FaPhoneAlt, FaInfoCircle, FaSpinner, FaLeaf,
+  FaDollarSign, FaTruck, FaStar, FaBox
+} from "react-icons/fa";
 import {
   BarChart,
   Bar,
@@ -13,7 +21,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import "../assets/scss/Dashboard.scss"; // Import the SCSS file
+import "../assets/scss/Dashboard.scss";
+import "../assets/scss/Dashboard.modern.scss";
+import "../assets/scss/SellerDashboard.modern.scss";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -208,38 +218,100 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="dashboard-container">
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-content">
-          <img src={Logo} alt="EcoWorth Logo" className="logo" />
-          <h1>Waste Dashboard</h1>
-        </div>
-        <button
-          className="logout-btn"
-          onClick={() => {
-            localStorage.removeItem("isAuthenticated");
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("user");
-            navigate("/login");
-          }}
-        >
-          <i className="bi bi-box-arrow-right"></i> Logout
-        </button>
-      </header>
+    <>
+      <Navbar />
+      <div className="dashboard-modern seller-dashboard-wrapper">
+        {/* Stats Overview Cards */}
+        <section className="stats-overview-section">
+          <div className="stats-grid-modern">
+            <div className="stat-card-modern" style={{ '--card-color': '#10b981' }}>
+              <div className="stat-icon-bg">
+                <FaBox />
+              </div>
+              <div className="stat-details">
+                <h3>{staticData.length}</h3>
+                <p>Material Categories</p>
+              </div>
+            </div>
+            
+            <div className="stat-card-modern" style={{ '--card-color': '#3b82f6' }}>
+              <div className="stat-icon-bg">
+                <FaDollarSign />
+              </div>
+              <div className="stat-details">
+                <h3>₹{chartData.reduce((sum, item) => sum + item.price, 0).toFixed(2)}</h3>
+                <p>Avg Price/kg</p>
+              </div>
+            </div>
+            
+            <div className="stat-card-modern" style={{ '--card-color': '#f59e0b' }}>
+              <div className="stat-icon-bg">
+                <FaTruck />
+              </div>
+              <div className="stat-details">
+                <h3>{forecastMonths}</h3>
+                <p>Months Forecast</p>
+              </div>
+            </div>
+            
+            <div className="stat-card-modern" style={{ '--card-color': '#8b5cf6' }}>
+              <div className="stat-icon-bg">
+                <FaStar />
+              </div>
+              <div className="stat-details">
+                <h3>{city}</h3>
+                <p>Selected Location</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Modern Header */}
+        <header className="dashboard-header-modern">
+          <div className="header-left">
+            <div className="logo-wrapper">
+              <img src={Logo} alt="EcoWorth Logo" className="logo-modern" />
+            </div>
+            <div className="header-info">
+              <h1 className="header-title">
+                <FaLeaf className="title-icon" />
+                Seller Dashboard
+              </h1>
+              <p className="header-subtitle">Manage your waste listings & analytics</p>
+            </div>
+          </div>
+          <button
+            className="logout-btn-modern"
+            onClick={() => {
+              localStorage.removeItem("isAuthenticated");
+              localStorage.removeItem("authToken");
+              localStorage.removeItem("user");
+              localStorage.removeItem("token");
+              window.dispatchEvent(new Event('authChange'));
+              navigate("/login");
+            }}
+          >
+            <FaSignOutAlt className="btn-icon" />
+            Logout
+          </button>
+        </header>
 
       {/* Main Content */}
-      <main className="dashboard-main">
+      <main className="dashboard-content-modern">
         {/* Filters Section */}
-        <section className="filters-section">
-          <h2>
-            <i className="bi bi-funnel"></i> Filter Options
-          </h2>
-          <div className="filter-grid">
-            {/* State Filter */}
-            <div className="filter-group">
+        <section className="filters-section-modern">
+          <div className="section-header">
+            <h2>
+              <FaFilter className="section-icon" />
+              Filter Options
+            </h2>
+            <span className="section-badge">Customize your view</span>
+          </div>
+          <div className="filters-grid">
+            <div className="filter-card">
               <label>
-                <i className="bi bi-geo-alt"></i> Select State
+                <FaMapMarkerAlt className="label-icon" />
+                Select State
               </label>
               <select value={selectedState} onChange={handleStateChange}>
                 {Object.keys(statesWithCities).map((state) => (
@@ -250,10 +322,10 @@ export default function Dashboard() {
               </select>
             </div>
 
-            {/* City Filter */}
-            <div className="filter-group">
+            <div className="filter-card">
               <label>
-                <i className="bi bi-building"></i> Select City
+                <FaBuilding className="label-icon" />
+                Select City
               </label>
               <select value={city} onChange={(e) => setCity(e.target.value)}>
                 {statesWithCities[selectedState]?.map((ct) => (
@@ -264,10 +336,10 @@ export default function Dashboard() {
               </select>
             </div>
 
-            {/* Category Filter */}
-            <div className="filter-group">
+            <div className="filter-card">
               <label>
-                <i className="bi bi-tags"></i> Select Category
+                <FaTags className="label-icon" />
+                Select Category
               </label>
               <select
                 value={selectedCategory}
@@ -281,10 +353,10 @@ export default function Dashboard() {
               </select>
             </div>
 
-            {/* Forecast Months */}
-            <div className="filter-group">
+            <div className="filter-card">
               <label>
-                <i className="bi bi-calendar-range"></i> Forecast Months
+                <FaCalendarAlt className="label-icon" />
+                Forecast Period
               </label>
               <select
                 value={forecastMonths}
@@ -301,19 +373,24 @@ export default function Dashboard() {
         </section>
 
         {/* Waste Quantities Table */}
-        <section className="data-section">
-          <h2>
-            <i className="bi bi-recycle"></i> Waste Quantities
-          </h2>
+        <section className="data-section-modern">
+          <div className="section-header">
+            <h2>
+              <FaRecycle className="section-icon" />
+              Waste Inventory
+            </h2>
+            <span className="section-badge">{staticData.length} Categories</span>
+          </div>
           {loading ? (
-            <div className="loading-spinner">
-              <div className="spinner"></div>
+            <div className="loading-modern">
+              <FaSpinner className="spinner-icon" />
+              <p>Loading data...</p>
             </div>
           ) : error ? (
-            <div className="error-message">{error}</div>
+            <div className="error-modern">{error}</div>
           ) : (
-            <div className="table-container">
-              <table>
+            <div className="table-modern-wrapper">
+              <table className="table-modern">
                 <thead>
                   <tr>
                     <th>Category</th>
@@ -323,18 +400,23 @@ export default function Dashboard() {
                 </thead>
                 <tbody>
                   {staticData.map((item, index) => (
-                    <tr
-                      key={item.category}
-                      className={index % 2 === 0 ? "even" : "odd"}
-                    >
-                      <td>{item.category}</td>
-                      <td>{item.weights}</td>
+                    <tr key={item.category}>
+                      <td>
+                        <div className="category-cell">
+                          <FaRecycle className="category-icon" />
+                          <span>{item.category}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="quantity-badge">{item.weights} kg</span>
+                      </td>
                       <td>
                         <button
-                          className="list-btn"
+                          className="action-btn-modern"
                           onClick={() => handleListClick(item.category)}
                         >
-                          List
+                          <FaPlusCircle className="btn-icon" />
+                          Create Listing
                         </button>
                       </td>
                     </tr>
@@ -346,22 +428,26 @@ export default function Dashboard() {
         </section>
 
         {/* Price Forecast Chart */}
-        <section className="chart-section">
-          <h2>
-            <i className="bi bi-graph-up-arrow"></i> Price Forecast for{" "}
-            {selectedCategory} in {city}
-          </h2>
+        <section className="chart-section-modern">
+          <div className="section-header">
+            <h2>
+              <FaChartLine className="section-icon" />
+              Price Forecast - {selectedCategory} in {city}
+            </h2>
+            <span className="section-badge">Next {forecastMonths} months</span>
+          </div>
           {loading ? (
-            <div className="loading-spinner">
-              <div className="spinner"></div>
+            <div className="loading-modern">
+              <FaSpinner className="spinner-icon" />
+              <p>Analyzing trends...</p>
             </div>
           ) : error ? (
-            <div className="error-message">{error}</div>
+            <div className="error-modern">{error}</div>
           ) : (
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height={350}>
+            <div className="chart-wrapper-modern">
+              <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="month"
                     label={{
@@ -388,9 +474,15 @@ export default function Dashboard() {
                   <Bar
                     dataKey="price"
                     name="Price per kg (₹)"
-                    fill="#4CAF50"
-                    radius={[4, 4, 0, 0]}
+                    fill="url(#colorGradient)"
+                    radius={[8, 8, 0, 0]}
                   />
+                  <defs>
+                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#059669" stopOpacity={0.7} />
+                    </linearGradient>
+                  </defs>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -398,135 +490,155 @@ export default function Dashboard() {
         </section>
       </main>
 
-      {/* Listing Modal */}
+      {/* Modern Listing Modal */}
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>
-                <i className="bi bi-file-plus"></i> Create New{" "}
-                {selectedItem?.category} Listing
-              </h3>
-              <button className="close-btn" onClick={() => setShowModal(false)}>
-                &times;
-              </button>
+        <div className="modal-overlay-dashboard">
+          <div className="modal-content-dashboard">
+            <button className="modal-close-btn" onClick={() => setShowModal(false)}>
+              <FaTimes />
+            </button>
+            
+            <div className="modal-header-dashboard">
+              <div className="modal-icon-wrapper">
+                <FaPlusCircle className="modal-icon" />
+              </div>
+              <h3>Create New {selectedItem?.category} Listing</h3>
+              <p>Fill in the details to list your recyclable material</p>
             </div>
-            <div className="modal-body">
-              <form onSubmit={handleSubmit}>
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>Category</label>
-                    <div className="readonly-field">
-                      <i className="bi bi-tag"></i>
-                      <span>{selectedItem?.category}</span>
-                    </div>
-                  </div>
 
-                  <div className="form-group">
-                    <label>Quantity (kg)</label>
-                    <div className="readonly-field">
-                      <i className="bi bi-box"></i>
-                      <span>{selectedItem?.quantity} kg</span>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Price per kg (₹)</label>
-                    <input
-                      type="number"
-                      name="pricePerKg"
-                      value={formData.pricePerKg}
-                      onChange={handleInputChange}
-                      maxLength={10}
-                      required
-                      placeholder="Enter contact number"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Contact Number</label>
-                    <input
-                      type="tel"
-                      name="contactNumber"
-                      value={formData.contactNumber}
-                      onChange={handleInputChange}
-                      maxLength={10}
-                      required
-                      placeholder="Enter contact number"
-                    />
-                  </div>
-
-                  <div className="filter-grid">
-                    <div className="filter-group">
-                      <label>
-                        <i className="bi bi-geo-alt"></i> Select State
-                      </label>
-                      <select
-                        name="state" // Add name attribute
-                        value={formData.state || selectedState} // Use formData.state with fallback
-                        onChange={handleInputChange}
-                      >
-                        {Object.keys(statesWithCities).map((state) => (
-                          <option key={state} value={state}>
-                            {" "}
-                            {/* Use state as value */}
-                            {state}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="filter-group">
-                      <label>
-                        <i className="bi bi-building"></i> Select City
-                      </label>
-                      <select
-                        name="city" // Add name attribute
-                        value={formData.city || city} // Use formData.city with fallback
-                        onChange={handleInputChange}
-                      >
-                        {statesWithCities[formData.state || selectedState]?.map(
-                          (ct) => (
-                            <option key={ct} value={ct}>
-                              {" "}
-                              {/* Use ct as value */}
-                              {ct}
-                            </option>
-                          )
-                        )}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group full-width">
-                    <label>Description</label>
-                    <textarea
-                      name="description"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      rows="3"
-                      placeholder="Additional details..."
-                    />
+            <form onSubmit={handleSubmit} className="modal-form-dashboard">
+              <div className="form-row-dashboard">
+                <div className="form-group-dashboard">
+                  <label>
+                    <FaTags className="label-icon" />
+                    Category
+                  </label>
+                  <div className="readonly-field">
+                    <FaRecycle className="field-icon" />
+                    <span>{selectedItem?.category}</span>
                   </div>
                 </div>
 
-                <div className="form-actions">
-                  <button
-                    type="button"
-                    className="cancel-btn"
-                    onClick={() => setShowModal(false)}
+                <div className="form-group-dashboard">
+                  <label>
+                    <FaBoxOpen className="label-icon" />
+                    Quantity
+                  </label>
+                  <div className="readonly-field">
+                    <span className="quantity-value">{selectedItem?.quantity} kg</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-row-dashboard">
+                <div className="form-group-dashboard">
+                  <label>
+                    <FaInfoCircle className="label-icon" />
+                    Price per kg (₹)
+                  </label>
+                  <input
+                    type="number"
+                    name="pricePerKg"
+                    value={formData.pricePerKg}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="Enter price per kg"
+                    className="input-modern"
+                  />
+                </div>
+
+                <div className="form-group-dashboard">
+                  <label>
+                    <FaPhoneAlt className="label-icon" />
+                    Contact Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="contactNumber"
+                    value={formData.contactNumber}
+                    onChange={handleInputChange}
+                    maxLength={10}
+                    required
+                    placeholder="10-digit number"
+                    className="input-modern"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row-dashboard">
+                <div className="form-group-dashboard">
+                  <label>
+                    <FaMapMarkerAlt className="label-icon" />
+                    State
+                  </label>
+                  <select
+                    name="state"
+                    value={formData.state || selectedState}
+                    onChange={handleInputChange}
+                    className="select-modern"
                   >
-                    Cancel
-                  </button>
-                  <button type="button" className="submit-btn" onClick={handleListing}>
-                    <i className="bi bi-plus-circle"></i> Create Listing
-                  </button>
+                    {Object.keys(statesWithCities).map((state) => (
+                      <option key={state} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </form>
-            </div>
+
+                <div className="form-group-dashboard">
+                  <label>
+                    <FaBuilding className="label-icon" />
+                    City
+                  </label>
+                  <select
+                    name="city"
+                    value={formData.city || city}
+                    onChange={handleInputChange}
+                    className="select-modern"
+                  >
+                    {statesWithCities[formData.state || selectedState]?.map((ct) => (
+                      <option key={ct} value={ct}>
+                        {ct}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group-dashboard full-width">
+                <label>
+                  <FaInfoCircle className="label-icon" />
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows="4"
+                  placeholder="Add details about material quality, condition, etc."
+                  className="textarea-modern"
+                />
+              </div>
+
+              <div className="modal-actions-dashboard">
+                <button
+                  type="button"
+                  className="btn-cancel-dashboard"
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="button" className="btn-submit-dashboard" onClick={handleListing}>
+                  <FaPlusCircle className="btn-icon" />
+                  Create Listing
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-    </div>
+      </div>
+      <Footer />
+    </>
   );
 }
