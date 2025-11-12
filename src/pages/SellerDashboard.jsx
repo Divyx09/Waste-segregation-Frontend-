@@ -24,6 +24,7 @@ import {
 import "../assets/scss/Dashboard.scss";
 import "../assets/scss/Dashboard.modern.scss";
 import "../assets/scss/SellerDashboard.modern.scss";
+import * as authUtils from '../utils/auth'; // Import auth utils
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -44,6 +45,8 @@ export default function Dashboard() {
     city: "",
     contactNumber: "",
   });
+  const [weights, setWeights] = useState([]); // State for weights API response
+  const [userListings, setUserListings] = useState([]); // State for user's listings
 
   // Filters state
   const [selectedState, setSelectedState] = useState("Maharashtra");
@@ -68,15 +71,22 @@ export default function Dashboard() {
             },
           }
         );
-        setStaticData(weightsResponse.data);
 
-        // Fetch chart data
+        const weightsData = weightsResponse.data;
+        setStaticData(weightsData);
+
+        // Set the first category as the default selected category
+        if (weightsData.length > 0) {
+          setSelectedCategory(weightsData[0].category);
+        }
+
+        // Fetch chart data for the first category
         const chartResponse = await axios.get(
           `${import.meta.env.VITE_BASE_URL}/predict/price`,
           {
             params: {
               city,
-              category: selectedCategory,
+              category: weightsData[0]?.category || "PET", // Default to "PET" if no data
               months: forecastMonths,
             },
             headers: {
@@ -105,7 +115,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, [city, selectedCategory, forecastMonths]);
+  }, [city, forecastMonths]);
 
 
   const handleListing = async (e) => {
@@ -117,16 +127,16 @@ export default function Dashboard() {
       // Prepare payload
       const payload = {
         category: formData.category,
-        quantity: `${formData.quantity}kg`, // append kg
-        price: `₹${formData.pricePerKg}/kg`, // format price
+        quantity: `${formData.quantity}`, // append kg
+        price_per_kg: `${formData.pricePerKg}`, // format price
         state: formData.state || selectedState,
         city: formData.city || city,
-        contactNo: formData.contactNumber,
+        contact_number: formData.contactNumber,
         description: formData.description,
       };
 
       // Make API POST request
-      const response = await axios.post(
+      const response = await axios.post(  
         `${import.meta.env.VITE_BASE_URL}/listings/add`, // Your endpoint
         payload,
         {
@@ -137,7 +147,7 @@ export default function Dashboard() {
         }
       );
 
-      if (response.status === 200 || response.status === 201) {
+      if (response.status === 200 || response.status === 201  ) {
         alert("Listing created successfully!");
 
         // Update state if you want to reflect new listing immediately
@@ -217,6 +227,114 @@ export default function Dashboard() {
     setCity(statesWithCities[newState]?.[0] || "");
   };
 
+  // Fetch chart data whenever selectedCategory, city, or forecastMonths change
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        setLoading(true);
+
+        const chartResponse = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/predict/price`,
+          {
+            params: {
+              city,
+              category: selectedCategory,
+              months: forecastMonths,
+            },
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        setChartData(
+          chartResponse.data.map((item) => ({
+            month: `${item.month.substring(0, 3)} ${item.year}`,
+            price: item.price_per_kg,
+            quantity: item.quantity_kg,
+            revenue: item.revenue,
+          }))
+        );
+
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching chart data:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (selectedCategory) {
+      fetchChartData();
+    }
+  }, [selectedCategory, city, forecastMonths]);
+
+  // Fetch user's listings and weights data on component mount
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        // Fetch user's listings
+        const listingsResponse = await axios.get("http://localhost:8000/listings/my", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const userListings = listingsResponse.data || [];
+        setUserListings(userListings);
+
+        // Fetch weights data
+        const weightsResponse = await axios.get("http://localhost:8000/weights", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const weightsData = weightsResponse.data || [];
+        setWeights(weightsData);
+
+        // Compare categories and update weights data
+        const updatedWeights = weightsData.map((weight) => {
+          const isListed = userListings.some(
+            (listing) => listing.category === weight.category
+          );
+          return { ...weight, isListed }; // Add `isListed` flag to weights
+        });
+
+        setWeights(updatedWeights); // Update weights with `isListed` flag
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    };
+
+    fetchListings();
+  }, []);
+
+  const WeightsGrid = ({ weights }) => {
+    return (
+      <div className="weights-grid-modern"></div>
+    );
+  };
+
+  const handleCreateListing = (category) => {
+    if (!authUtils.isAuthenticated()) {
+      alert("Please login to create a listing");
+      navigate("/login");
+      return;
+    }
+
+    const user = authUtils.getCurrentUser();
+    if (user.role?.toLowerCase() === "seller") {
+      navigate(`/seller-listing?category=${category}`); // Pass the category as a query parameter
+    } else {
+      alert("Only sellers can create listings");
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -234,13 +352,16 @@ export default function Dashboard() {
               </div>
             </div>
             
-            <div className="stat-card-modern" style={{ '--card-color': '#3b82f6' }}>
-              <div className="stat-icon-bg">
+            <div className="stat-card-modern" style={{ '--card-color': '#3b82f6' }} onClick={()=>{navigate("/seller-listing")}}>
+              {/* <div className="stat-icon-bg">
                 <FaDollarSign />
               </div>
               <div className="stat-details">
                 <h3>₹{chartData.reduce((sum, item) => sum + item.price, 0).toFixed(2)}</h3>
                 <p>Avg Price/kg</p>
+              </div> */}
+              <div className="stat-details"  >
+                <p>See Listings</p>
               </div>
             </div>
             
@@ -399,7 +520,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {staticData.map((item, index) => (
+                  {weights.map((item, index) => (
                     <tr key={item.category}>
                       <td>
                         <div className="category-cell">
@@ -413,10 +534,11 @@ export default function Dashboard() {
                       <td>
                         <button
                           className="action-btn-modern"
+                          disabled={item.isListed}
                           onClick={() => handleListClick(item.category)}
                         >
                           <FaPlusCircle className="btn-icon" />
-                          Create Listing
+                          {item.isListed ? "Listed" : "Create Listing"}
                         </button>
                       </td>
                     </tr>
