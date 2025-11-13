@@ -263,11 +263,11 @@ $dark-text: #1f2937;
           gap: 1.2rem;
           transition: all 0.3s ease;
 
-          &:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-          }
+          // &:hover {
+          //   background: rgba(255, 255, 255, 0.15);
+          //   transform: translateY(-5px);
+          //   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+          // }
 
           .stat-icon {
             font-size: 2.5rem;
@@ -525,47 +525,58 @@ $dark-text: #1f2937;
 
       .seller-actions {
         display: flex;
-        gap: 0.75rem;
-        margin-top: 0.75rem;
+        margin-right: 10rem;
+        align-items: flex-start;
+        margin-top: 0.5rem;
+        gap:0.3rem;
 
         .action-btn {
-          flex: 1;
-          padding: 0.75rem 1rem;
+          flex: 1 1 0;
+          padding: 0.5rem;
           border: none;
           border-radius: 12px;
-          font-size: 0.95rem;
+          font-size: 0.75rem;
           font-weight: 600;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          transition: all 0.3s ease;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 
           svg {
-            font-size: 1rem;
+            font-size: 1.1rem;
+            margin-right: 0.3rem;
+            transition: transform 0.2s;
           }
 
-          &.edit-btn {
-            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-            color: white;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-
-            &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4);
-            }
+          &:hover svg {
+            transform: scale(1.2) rotate(-8deg);
           }
+        }
 
-          &.delete-btn {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        .edit-btn {
+          background: white;
+          color: black  ;
+          border: 1.5px solid #3b82f6;
 
-            &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
-            }
+          &:hover {
+            background: greenyellow;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.18);
+            border-color: #2563eb;
+          }
+        }
+
+        .delete-btn {
+          background: rgb(248, 138, 138);
+          color: #fff;
+          border: 1.5px solid #ef4444;
+
+          &:hover {
+            background: red;
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.18);
+            border-color: #dc2626;
           }
         }
       }
@@ -1028,4 +1039,28 @@ $dark-text: #1f2937;
       }
     }
   }
+}
+/* SellWastePage.scss or a global CSS file */
+.listings-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+.listing-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.listing-card-wrapper:hover,
+.listing-card-wrapper:focus,
+.listing-card-wrapper:active {
+  box-shadow: none !important;
+}
+
+.listing-card-inner:hover,
+.listing-card-inner:focus,
+.listing-card-inner:active {
+  box-shadow: none !important;
 }

@@ -1,59 +1,78 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // <-- ADDED
 import "../assets/scss/style.scss";
 import "../assets/scss/HomePage.modern.scss";
 import Navbar from "../components/Navbar";
 import ListingCard from "../components/ListingCard";
 import Footer from "../components/Footer";
 import axios from 'axios';
-import { FaFilter, FaPlusCircle, FaRecycle, FaCheckCircle, FaMapMarkerAlt, FaPhoneAlt, FaRupeeSign, FaInfoCircle, FaSpinner, FaLeaf, FaChartLine, FaShieldAlt, FaRocket, FaBolt, FaGlobe, FaStar, FaTimes } from "react-icons/fa";
+import { 
+  FaFilter, 
+  FaPlusCircle, 
+  FaRecycle, 
+  FaCheckCircle, 
+  FaMapMarkerAlt, 
+  FaPhoneAlt, 
+  FaRupeeSign, 
+  FaInfoCircle, 
+  FaSpinner, 
+  FaLeaf, 
+  FaChartLine, 
+  FaShieldAlt, 
+  FaRocket, 
+  FaBolt, 
+  FaGlobe, 
+  FaStar, 
+  FaTimes 
+} from "react-icons/fa";
+import { authUtils } from "../utils/auth"; // <-- ADDED
 
 const HomePage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [listings, setListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // <-- ADDED
+  const navigate = useNavigate(); // <-- ADDED
+
+  // <-- FIXED Form data names to be more standard
   const [formData, setFormData] = useState({
     category: "PET",
     quantity: "",
-    pricePerKg: "",
+    price: "",
     description: "",
     state: "",
     city: "",
-    contactNumber: "",
+    contact: "",
   });
-
-  // hrll9
 
   const fetchList = async () => {
     try {
-      // GET /listings is a PUBLIC endpoint - no auth required
       const res = await axios.get(`${import.meta.env.VITE_BASE_URL}/listings`);
-      
       console.log("Listings API Response:", res.data);
       
-      // Handle different response structures
+      let allListings = [];
       if (Array.isArray(res.data)) {
-        setListings(res.data);
+        allListings = res.data;
       } else if (res.data && Array.isArray(res.data.listings)) {
-        setListings(res.data.listings);
+        allListings = res.data.listings;
       } else {
         console.warn("Unexpected response format:", res.data);
-        setListings([]);
       }
+      // Ensure latest listings are first
+      setListings(allListings.reverse());
     } catch (err) {
       console.error("Error fetching listings:", err);
-      console.error("Error details:", err.response?.data);
-      setListings([]); // Set empty array on error
+      setListings([]);
     } finally {
-      setIsLoading(false); // ✅ Stop loading after fetching
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchList()
-  }, []);
+    fetchList();
+  }, []); // This correctly fetches on every page load/refresh
 
-  // Ensure listings is always an array before filtering
   const listingsArray = Array.isArray(listings) ? listings : [];
   
   const filteredListings =
@@ -66,33 +85,85 @@ const HomePage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCreateListing = (e) => {
+  // --- THIS IS THE CRITICAL FIX ---
+  const handleCreateListing = async (e) => {
     e.preventDefault();
-    const newListing = {
-      id: Date.now(),
-      ...formData,
-    };
 
+    // 1. Check Authentication
+    if (!authUtils.isAuthenticated()) {
+      alert("Please login to create a listing.");
+      navigate('/login');
+      return;
+    }
 
+    // 2. Check Role
+    const user = authUtils.getCurrentUser();
+    if (user.role?.toLowerCase() !== 'seller') {
+      alert("Only verified sellers can create listings. Please apply to become a seller.");
+      navigate('/license'); // Or your "become-seller" page
+      return;
+    }
 
+    setIsSubmitting(true);
+    try {
+      // 3. Send data to backend
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/listings`,
+        formData, // Send the form data
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    // Modal close & form reset
-    setShowModal(false);
-    setFormData({
-      category: "PET",
-      quantity: "",
-      pricePerKg: "",
-      description: "",
-      state: "",
-      city: "",
-      contactNumber: "",
-    });
+      // 4. Handle Success
+      if (response.status === 201) {
+        alert("Listing created successfully!");
+        
+        // 5. Instantly update UI (add new listing to the top)
+        const newListing = response.data.listing || response.data;
+        setListings([newListing, ...listings]);
+        
+        setShowModal(false); // Close modal
+        setFormData({ // Reset form
+          category: "PET",
+          quantity: "",
+          price: "",
+          description: "",
+          state: "",
+          city: "",
+          contact: "",
+        });
+      }
+    } catch (err) {
+      console.error("Error creating listing:", err);
+      alert("Failed to create listing. Please check your inputs and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const openCreateModal = () => {
+    if (!authUtils.isAuthenticated()) {
+      alert("Please login to create a listing.");
+      navigate('/login');
+      return;
+    }
+    const user = authUtils.getCurrentUser();
+    if (user.role?.toLowerCase() !== 'seller') {
+      alert("Only verified sellers can create listings.");
+      navigate('/license'); // Or your "become-seller" page
+      return;
+    }
+    setShowModal(true);
   };
 
   return (
     <div className="recycle-app">
       <Navbar />
-      <HeroSection openModal={() => setShowModal(true)} />
+      <HeroSection openModal={openCreateModal} /> {/* <-- UPDATED */}
 
       {/* Sell Waste Section */}
       <div className="container">
@@ -132,6 +203,7 @@ const HomePage = () => {
               className="modal-close-btn"
               onClick={() => setShowModal(false)}
               title="Close"
+              disabled={isSubmitting} // <-- ADDED
             >
               <FaTimes />
             </button>
@@ -189,8 +261,8 @@ const HomePage = () => {
                   </label>
                   <input
                     type="number"
-                    name="pricePerKg"
-                    value={formData.pricePerKg}
+                    name="price" // <-- FIXED
+                    value={formData.price} // <-- FIXED
                     onChange={handleInputChange}
                     placeholder="Enter price"
                     className="form-input-modern"
@@ -240,8 +312,8 @@ const HomePage = () => {
                   </label>
                   <input
                     type="tel"
-                    name="contactNumber"
-                    value={formData.contactNumber}
+                    name="contact" // <-- FIXED
+                    value={formData.contact} // <-- FIXED
                     onChange={handleInputChange}
                     placeholder="+91 XXXXX XXXXX"
                     className="form-input-modern"
@@ -272,12 +344,21 @@ const HomePage = () => {
                   type="button"
                   className="btn-cancel-modern"
                   onClick={() => setShowModal(false)}
+                  disabled={isSubmitting} // <-- ADDED
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-submit-modern">
-                  <FaPlusCircle className="btn-icon" />
-                  Create Listing
+                <button 
+                  type="submit" 
+                  className="btn-submit-modern"
+                  disabled={isSubmitting} // <-- ADDED
+                >
+                  {isSubmitting ? (
+                    <FaSpinner className="spinner-white" /> // <-- ADDED
+                  ) : (
+                    <FaPlusCircle className="btn-icon" />
+                  )}
+                  {isSubmitting ? "Creating..." : "Create Listing"}
                   <div className="btn-shimmer"></div>
                 </button>
               </div>
@@ -289,6 +370,7 @@ const HomePage = () => {
   );
 };
 
+// ... (HeroSection component remains the same)
 const HeroSection = ({ openModal }) => {
   const [scrollY, setScrollY] = useState(0);
 
@@ -300,7 +382,7 @@ const HeroSection = ({ openModal }) => {
 
   return (
     <section className="hero-modern">
-      {/* Animated background elements */}
+      {/* ... (rest of hero background) ... */}
       <div className="hero-bg-elements">
         <div className="floating-circle circle-1"></div>
         <div className="floating-circle circle-2"></div>
@@ -349,7 +431,7 @@ const HeroSection = ({ openModal }) => {
               List Your Materials
               <div className="btn-shimmer"></div>
             </button>
-            <button className="btn-modern-secondary">
+            <button className="btn-modern-secondary" onClick={() => navigate('/sell')}>
               <FaRecycle className="btn-icon" />
               Explore Marketplace
             </button>
@@ -371,7 +453,7 @@ const HeroSection = ({ openModal }) => {
           </div>
         </div>
 
-        {/* Interactive 3D illustration placeholder */}
+        {/* ... (rest of hero visual) ... */}
         <div className="hero-visual-modern">
           <div className="visual-card card-1">
             <FaRecycle className="visual-icon" />
@@ -394,7 +476,7 @@ const HeroSection = ({ openModal }) => {
         </div>
       </div>
 
-      {/* Wave separator */}
+      {/* ... (rest of hero wave) ... */}
       <div className="wave-separator">
         <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
           <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"></path>
@@ -404,6 +486,7 @@ const HeroSection = ({ openModal }) => {
   );
 };
 
+// ... (CategoryFilter component remains the same)
 const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
   const categories = [
     { id: "all", name: "All Plastics", icon: FaRecycle, color: "#6366f1" },
@@ -450,6 +533,7 @@ const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
   );
 };
 
+// ... (StatsBar component remains the same)
 const StatsBar = ({ listings }) => {
   const [animated, setAnimated] = useState(false);
 
@@ -519,8 +603,8 @@ const StatsBar = ({ listings }) => {
   );
 };
 
+// --- THIS IS THE UPDATED UI FOR THE GRID ---
 const ListingsGrid = ({ listings }) => {
-  // Safety check: ensure listings is an array
   const listingsArray = Array.isArray(listings) ? listings : [];
   
   if (listingsArray.length === 0) {
@@ -528,24 +612,23 @@ const ListingsGrid = ({ listings }) => {
       <div className="no-listings">
         <FaInfoCircle className="info-icon" />
         <h3>No listings available</h3>
-        <p>Be the first to create a listing!</p>
+        <p>Try selecting a different category or be the first to post!</p>
       </div>
     );
   }
 
   return (
-    <div className="listings-grid my-5 w-100">
-      <div className="row g-4 w-100">
-        {listingsArray.map(listing => (
-          <div key={listing.id} className="col-md-12">
-            <ListingCard listing={listing} />
-          </div>
-        ))}
-      </div>
+    <div className="listings-grid-modern">
+      {listingsArray.map((listing) => (
+        <div key={listing.id || listing._id} className="listing-card-wrapper">
+          <ListingCard listing={listing} />
+        </div>
+      ))}
     </div>
   );
 };
 
+// ... (HowItWorks component remains the same)
 const HowItWorks = () => {
   const steps = [
     {
@@ -608,13 +691,12 @@ const HowItWorks = () => {
           })}
         </div>
 
-        {/* CTA Section */}
         <div className="cta-section-modern">
           <div className="cta-content">
             <h3>Ready to Start Your Sustainability Journey?</h3>
             <p>Join thousands of businesses making a positive environmental impact</p>
           </div>
-          <button className="btn-modern-primary">
+          <button className="btn-modern-primary" onClick={() => navigate('/register')}>
             <FaRocket className="btn-icon" />
             Get Started Today
           </button>

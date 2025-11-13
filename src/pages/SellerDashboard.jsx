@@ -157,7 +157,7 @@ export default function Dashboard() {
         setShowModal(false);
 
         // Navigate to seller listing page
-        navigate("/seller-listing", {
+        navigate("/sell-waste", {
           state: { category: selectedItem.category },
         });
       }
@@ -338,10 +338,23 @@ export default function Dashboard() {
   return (
     <>
       <Navbar />
-      <div className="dashboard-modern seller-dashboard-wrapper">
-        {/* Stats Overview Cards */}
+      <div className="dashboard-modern seller-dashboard-wrapper" >
+        {/* Stats Overview Cards */} 
         <section className="stats-overview-section">
           <div className="stats-grid-modern">
+
+            <div className="stat-card-modern" style={{ '--card-color': '#3b82f6' }} onClick={()=>{navigate("/sell-waste")}}>
+              {/* <div className="stat-icon-bg">
+                <FaDollarSign />
+              </div>
+              <div className="stat-details">
+                <h3>₹{chartData.reduce((sum, item) => sum + item.price, 0).toFixed(2)}</h3>
+                <p>Avg Price/kg</p>
+              </div> */}
+              <div className="stat-details" style={{fontWeight:"600",cursor:"pointer"}}  >
+                <p><h4 >See Your Listings</h4></p>
+              </div>
+            </div>
             <div className="stat-card-modern" style={{ '--card-color': '#10b981' }}>
               <div className="stat-icon-bg">
                 <FaBox />
@@ -352,18 +365,7 @@ export default function Dashboard() {
               </div>
             </div>
             
-            <div className="stat-card-modern" style={{ '--card-color': '#3b82f6' }} onClick={()=>{navigate("/seller-listing")}}>
-              {/* <div className="stat-icon-bg">
-                <FaDollarSign />
-              </div>
-              <div className="stat-details">
-                <h3>₹{chartData.reduce((sum, item) => sum + item.price, 0).toFixed(2)}</h3>
-                <p>Avg Price/kg</p>
-              </div> */}
-              <div className="stat-details"  >
-                <p>See Listings</p>
-              </div>
-            </div>
+            
             
             <div className="stat-card-modern" style={{ '--card-color': '#f59e0b' }}>
               <div className="stat-icon-bg">
@@ -496,11 +498,13 @@ export default function Dashboard() {
         {/* Waste Quantities Table */}
         <section className="data-section-modern">
           <div className="section-header">
-            <h2>
+            <div className="d-flex align-items-center">
               <FaRecycle className="section-icon" />
+            <h2 className="m-2 f-bold">
               Waste Inventory
             </h2>
-            <span className="section-badge">{staticData.length} Categories</span>
+            </div>
+            {/* <span className="section-badge">{staticData.length} Categories</span> */}
           </div>
           {loading ? (
             <div className="loading-modern">
@@ -514,7 +518,7 @@ export default function Dashboard() {
               <table className="table-modern">
                 <thead>
                   <tr>
-                    <th>Category</th>
+                    <th>Category ({staticData.length})</th>
                     <th>Quantity (kg)</th>
                     <th>Action</th>
                   </tr>
@@ -552,10 +556,12 @@ export default function Dashboard() {
         {/* Price Forecast Chart */}
         <section className="chart-section-modern">
           <div className="section-header">
+            <div className="d-flex align-items-center">
+              <FaChartLine className="section-icon" className="mx-2"/>
             <h2>
-              <FaChartLine className="section-icon" />
               Price Forecast - {selectedCategory} in {city}
             </h2>
+            </div>
             <span className="section-badge">Next {forecastMonths} months</span>
           </div>
           {loading ? (
