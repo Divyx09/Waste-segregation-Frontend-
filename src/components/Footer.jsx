@@ -131,7 +131,7 @@ const Footer = () => {
         </div>
 
         {/* Newsletter Section */}
-        <div className="footer-newsletter">
+        {/* <div className="footer-newsletter">
           <div className="newsletter-content">
             <h4>Stay Updated</h4>
             <p>Subscribe to our newsletter for the latest sustainability news</p>
@@ -150,7 +150,7 @@ const Footer = () => {
               <FaArrowRight className="btn-icon" />
             </button>
           </form>
-        </div>
+        </div> */}
 
         {/* Bottom Section */}
         <div className="footer-bottom">
