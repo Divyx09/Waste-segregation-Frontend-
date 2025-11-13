@@ -658,7 +658,7 @@ const EditListingModal = ({
       const updatedListing = {
         ...listing,
         category: formData.category,
-        price: formData.price,
+        price_per_kg: formData.price,
         state: formData.state,
         city: formData.city,
         description: formData.description,
