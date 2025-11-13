@@ -557,7 +557,7 @@ export default function Dashboard() {
         <section className="chart-section-modern">
           <div className="section-header">
             <div className="d-flex align-items-center">
-              <FaChartLine className="section-icon" className="mx-2"/>
+              <FaChartLine className="section-icon mx-2"/>
             <h2>
               Price Forecast - {selectedCategory} in {city}
             </h2>
