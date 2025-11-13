@@ -35,6 +35,7 @@ import "../assets/scss/BuyMaterialsPage.scss";
 export default function BuyMaterialsPage() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("all");
+  const [activePlasticType, setActivePlasticType] = useState("all"); // NEW
   const [listings, setListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,19 +62,36 @@ export default function BuyMaterialsPage() {
     fetchListings();
   }, []);
 
-  const filteredListings = activeCategory === "all" 
-    ? listings 
-    : listings.filter(listing => listing.category?.toLowerCase() === activeCategory.toLowerCase());
-
+  // Only show plastics and paper, others disabled
   const categories = [
-    { id: "all", label: "All Materials", icon: FaBoxes, color: "#10b981" },
-    { id: "plastic", label: "Plastic", icon: FaRecycle, color: "#3b82f6" },
-    { id: "metal", label: "Metal", icon: FaIndustry, color: "#8b5cf6" },
-    { id: "paper", label: "Paper", icon: FaNewspaper, color: "#f59e0b" },
-    { id: "glass", label: "Glass", icon: FaWineBottle, color: "#10b981" },
-    { id: "e-waste", label: "E-Waste", icon: FaMicrochip, color: "#ef4444" },
-    { id: "organic", label: "Organic", icon: FaLeaf, color: "#22c55e" }
+    { id: "all", label: "All Materials", icon: FaBoxes, color: "#10b981", disabled: false },
+    { id: "plastic", label: "Plastic", icon: FaRecycle, color: "#3b82f6", disabled: false },
+    { id: "paper", label: "Paper", icon: FaNewspaper, color: "#f59e0b", disabled: false },
+    { id: "metal", label: "Metal", icon: FaIndustry, color: "#8b5cf6", disabled: true },
+    { id: "glass", label: "Glass", icon: FaWineBottle, color: "#10b981", disabled: true },
+    { id: "e-waste", label: "E-Waste", icon: FaMicrochip, color: "#ef4444", disabled: true },
+    { id: "organic", label: "Organic", icon: FaLeaf, color: "#22c55e", disabled: true }
   ];
+
+  // Plastic subtypes
+  const plasticTypes = [
+    { id: "all", label: "All Plastics" },
+    { id: "PET", label: "PET" },
+    { id: "HDPE", label: "HDPE" },
+    { id: "LDPE", label: "LDPE" },
+    { id: "PE", label: "PE" },
+    { id: "PVC", label: "PVC" }
+  ];
+
+  // Filtering logic
+  let filteredListings = listings;
+  if (activeCategory === "plastic") {
+    filteredListings = activePlasticType === "all"
+      ? listings.filter(l => l.category && ["PET", "HDPE", "LDPE", "PE", "PVC"].includes(l.category.toUpperCase()))
+      : listings.filter(l => l.category && l.category.toUpperCase() === activePlasticType);
+  } else if (activeCategory !== "all") {
+    filteredListings = listings.filter(l => l.category?.toLowerCase() === activeCategory.toLowerCase());
+  }
 
   const handleBecomeBuyer = () => {
     if (!authUtils.isAuthenticated()) {
@@ -111,35 +129,63 @@ export default function BuyMaterialsPage() {
           <div className="category-filter-modern">
             {categories.map((cat) => {
               const IconComponent = cat.icon;
-              const categoryCount = activeCategory === "all" 
-                ? listings.length 
-                : listings.filter(l => l.category?.toLowerCase() === cat.id.toLowerCase()).length;
-              
+              const isActive = activeCategory === cat.id;
               return (
                 <button
                   key={cat.id}
-                  className={`category-btn-modern ${activeCategory === cat.id ? "active" : ""}`}
-                  onClick={() => setActiveCategory(cat.id)}
-                  style={{ 
-                    '--category-color': cat.color,
-                    '--category-bg': activeCategory === cat.id ? cat.color : 'transparent'
+                  className={`category-btn-modern ${isActive ? "active" : ""}`}
+                  onClick={() => {
+                    if (!cat.disabled) {
+                      setActiveCategory(cat.id);
+                      if (cat.id !== "plastic") setActivePlasticType("all");
+                    }
                   }}
+                  style={{
+                    '--category-color': cat.color,
+                    '--category-bg': isActive ? cat.color : 'transparent',
+                    opacity: cat.disabled ? 0.5 : 1,
+                    cursor: cat.disabled ? 'not-allowed' : 'pointer'
+                  }}
+                  disabled={cat.disabled}
                 >
                   <IconComponent className="category-icon" />
                   <span>{cat.label}</span>
-                  {cat.id !== "all" && <span className="category-count">{categoryCount}</span>}
-                  {activeCategory === cat.id && <div className="active-indicator"></div>}
+                  {isActive && <div className="active-indicator"></div>}
                 </button>
               );
             })}
           </div>
+
+          {/* Plastic Sub-Filter */}
+          {activeCategory === "plastic" && (
+            <div className="plastic-subfilter" style={{ margin: "1rem 0", display: "flex", gap: "0.5rem" }}>
+              {plasticTypes.map((type) => (
+                <button
+                  key={type.id}
+                  className={`plastic-type-btn${activePlasticType === type.id ? " active" : ""}`}
+                  onClick={() => setActivePlasticType(type.id)}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    borderRadius: "6px",
+                    border: "1px solid #e5e7eb",
+                    background: activePlasticType === type.id ? "#3b82f6" : "#f3f4f6",
+                    color: activePlasticType === type.id ? "#fff" : "#374151",
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Results Info */}
           {!isLoading && (
             <div className="results-info">
               <p>
                 Showing <strong>{filteredListings.length}</strong> {filteredListings.length === 1 ? 'material' : 'materials'}
-                {activeCategory !== "all" && ` in "${activeCategory}"`}
+                {activeCategory !== "all" && ` in "${activeCategory}${activeCategory === "plastic" && activePlasticType !== "all" ? " - " + activePlasticType : ""}"`}
               </p>
             </div>
           )}
@@ -161,7 +207,7 @@ export default function BuyMaterialsPage() {
                   ? "No materials available at the moment. Check back soon!" 
                   : `No ${activeCategory} materials available. Try another category.`}
               </p>
-              <button className="btn-modern-secondary" onClick={() => setActiveCategory("all")}>
+              <button className="btn-modern-secondary" onClick={() => { setActiveCategory("all"); setActivePlasticType("all"); }}>
                 View All Materials
               </button>
             </div>
