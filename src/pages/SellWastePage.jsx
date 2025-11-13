@@ -396,13 +396,12 @@ const statesWithCities = {
 
 const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
   const categories = [
-    { id: "all", label: "All Materials", icon: FaBoxes, color: "#8b5cf6" },
-    { id: "plastic", label: "Plastic", icon: FaRecycle, color: "#3b82f6" },
-    { id: "metal", label: "Metal", icon: FaIndustry, color: "#64748b" },
-    { id: "paper", label: "Paper", icon: FaNewspaper, color: "#f59e0b" },
-    { id: "glass", label: "Glass", icon: FaWineBottle, color: "#06b6d4" },
-    { id: "organic", label: "Organic", icon: FaLeaf, color: "#10b981" },
-    { id: "electronic", label: "E-Waste", icon: FaMicrochip, color: "#ef4444" },
+    { id: "all", label: "All Plastics", icon: FaBoxes, color: "#8b5cf6" },
+    { id: "PET", label: "PET", icon: FaRecycle, color: "#3b82f6" },
+    { id: "HDPE", label: "HDPE", icon: FaRecycle, color: "#10b981" },
+    { id: "LDPE", label: "LDPE", icon: FaRecycle, color: "#f59e0b" },
+    { id: "PE", label: "PE", icon: FaRecycle, color: "#06b6d4" },
+    { id: "PVC", label: "PVC", icon: FaRecycle, color: "#ef4444" },
   ];
 
   return (

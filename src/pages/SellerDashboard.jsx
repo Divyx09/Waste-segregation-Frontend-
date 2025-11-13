@@ -541,8 +541,8 @@ export default function Dashboard() {
                           disabled={item.isListed}
                           onClick={() => handleListClick(item.category)}
                         >
-                          <FaPlusCircle className="btn-icon" />
-                          {item.isListed ? "Listed" : "Create Listing"}
+                          
+                          {item.isListed ? "Listed" : <div><FaPlusCircle className="btn-icon" /> Create Listing</div>}
                         </button>
                       </td>
                     </tr>
