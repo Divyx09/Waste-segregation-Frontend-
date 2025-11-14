@@ -51,21 +51,27 @@ export default function AdminDashboard() {
 
   const fetchAdminData = async () => {
     try {
-      // TODO: Replace with actual API calls
+      const token = authUtils.getToken();
+      
       // Fetch platform statistics
-      // const statsRes = await axios.get(`${import.meta.env.VITE_BASE_URL}/admin/stats`, {
-      //   headers: { Authorization: `Bearer ${authUtils.getToken()}` }
-      // });
+      const statsRes = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/admin/statistics`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-      // Demo data
-      setStats({
-        totalUsers: 1250,
-        totalSellers: 780,
-        totalBuyers: 470,
-        totalListings: 3400,
-        pendingLicenses: 12,
-        approvedLicenses: 45
-      });
+      if (statsRes.data && statsRes.data.statistics) {
+        const stats = statsRes.data.statistics;
+        setStats({
+          totalUsers: stats.users?.total || 0,
+          totalSellers: stats.users?.sellers || 0,
+          totalBuyers: stats.users?.buyers || 0,
+          totalListings: stats.listings?.total || 0,
+          pendingLicenses: stats.subscriptions?.pending || 0,
+          approvedLicenses: stats.subscriptions?.active || 0
+        });
+      }
 
       // Fetch license requests
       fetchLicenseRequests();
@@ -80,36 +86,81 @@ export default function AdminDashboard() {
       fetchAnalytics();
     } catch (error) {
       console.error('Error fetching admin data:', error);
+      // Set default values on error
+      setStats({
+        totalUsers: 0,
+        totalSellers: 0,
+        totalBuyers: 0,
+        totalListings: 0,
+        pendingLicenses: 0,
+        approvedLicenses: 0
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchLicenseRequests = () => {
-    // TODO: Replace with actual API call
-    const demoRequests = [
-      { id: 1, userName: 'John Doe', email: 'john@example.com', plan: 'pro', status: 'pending', date: '2025-11-10' },
-      { id: 2, userName: 'Jane Smith', email: 'jane@example.com', plan: 'basic', status: 'pending', date: '2025-11-11' },
-      { id: 3, userName: 'Mike Johnson', email: 'mike@example.com', plan: 'enterprise', status: 'pending', date: '2025-11-12' },
-    ];
-    setLicenseRequests(demoRequests);
-  };
-
-  const fetchUsers = () => {
-    // TODO: Replace with actual API call
-    const demoUsers = [
-      { id: 1, name: 'Alice Brown', email: 'alice@example.com', role: 'seller', status: 'active', joinDate: '2025-10-15', listings: 24 },
-      { id: 2, name: 'Bob Wilson', email: 'bob@example.com', role: 'buyer', status: 'active', joinDate: '2025-10-20', purchases: 12 },
-      { id: 3, name: 'Carol Davis', email: 'carol@example.com', role: 'seller', status: 'active', joinDate: '2025-11-01', listings: 8 },
-      { id: 4, name: 'David Lee', email: 'david@example.com', role: 'buyer', status: 'active', joinDate: '2025-11-05', purchases: 5 },
-      { id: 5, name: 'Eva Martinez', email: 'eva@example.com', role: 'seller', status: 'suspended', joinDate: '2025-09-20', listings: 15 },
-    ];
-    setUsers(demoUsers);
-  };
-
-  const fetchListings = async () => {
+  const fetchLicenseRequests = async (status = 'pending', page = 1, limit = 20) => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/listings`);
+      const token = authUtils.getToken();
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/admin/subscriptions`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { status, page, limit }
+        }
+      );
+      
+      if (response.data && response.data.subscriptions && Array.isArray(response.data.subscriptions)) {
+        setLicenseRequests(response.data.subscriptions);
+      } else if (response.data && Array.isArray(response.data)) {
+        setLicenseRequests(response.data);
+      } else {
+        setLicenseRequests([]);
+      }
+    } catch (error) {
+      console.error('Error fetching subscription requests:', error);
+      setLicenseRequests([]);
+    }
+  };
+
+  const fetchUsers = async (role = null, page = 1, limit = 20) => {
+    try {
+      const token = authUtils.getToken();
+      const params = { page, limit };
+      if (role) params.role = role;
+      
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/admin/users`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params
+        }
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        setUsers(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setUsers([]);
+    }
+  };
+
+  const fetchListings = async (category = null, page = 1, limit = 20) => {
+    try {
+      const token = authUtils.getToken();
+      const params = { page, limit };
+      if (category) params.category = category;
+      
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/admin/listings`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params
+        }
+      );
+      
       const data = Array.isArray(response.data) ? response.data : response.data?.listings || [];
       setListings(data);
     } catch (error) {
@@ -150,71 +201,140 @@ export default function AdminDashboard() {
     setAnalytics({ userGrowth, categoryDistribution, revenueData });
   };
 
-  const handleApproveLicense = async (requestId) => {
+  const handleApproveLicense = async (subscriptionId, adminNotes = 'Payment verified and approved') => {
     try {
-      // TODO: Replace with actual API call
-      // await axios.post(
-      //   `${import.meta.env.VITE_BASE_URL}/admin/license/approve/${requestId}`,
-      //   {},
-      //   { headers: { Authorization: `Bearer ${authUtils.getToken()}` } }
-      // );
+      const token = authUtils.getToken();
+      await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/admin/subscriptions/${subscriptionId}/approve`,
+        {
+          status: 'active',
+          admin_notes: adminNotes
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
 
       // Update local state
-      setLicenseRequests(prev => prev.filter(req => req.id !== requestId));
+      setLicenseRequests(prev => prev.filter(req => req.id !== subscriptionId));
       setStats(prev => ({
         ...prev,
         pendingLicenses: prev.pendingLicenses - 1,
         approvedLicenses: prev.approvedLicenses + 1
       }));
 
-      alert('License approved successfully!');
+      alert('Subscription approved successfully!');
+      
+      // Refresh data
+      fetchLicenseRequests();
+      fetchAdminData();
     } catch (error) {
-      console.error('Error approving license:', error);
-      alert('Failed to approve license');
+      console.error('Error approving subscription:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to approve subscription';
+      alert(errorMessage);
     }
   };
 
-  const handleRejectLicense = async (requestId) => {
+  const handleRejectLicense = async (subscriptionId, adminNotes = 'Subscription request rejected') => {
+    if (!confirm('Are you sure you want to reject this subscription request?')) return;
+    
     try {
-      // TODO: Replace with actual API call
-      setLicenseRequests(prev => prev.filter(req => req.id !== requestId));
+      const token = authUtils.getToken();
+      await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/admin/subscriptions/${subscriptionId}/approve`,
+        {
+          status: 'rejected',
+          admin_notes: adminNotes
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      setLicenseRequests(prev => prev.filter(req => req.id !== subscriptionId));
       setStats(prev => ({
         ...prev,
         pendingLicenses: prev.pendingLicenses - 1
       }));
 
-      alert('License rejected');
+      alert('Subscription rejected');
+      
+      // Refresh data
+      fetchLicenseRequests();
     } catch (error) {
-      console.error('Error rejecting license:', error);
-      alert('Failed to reject license');
+      console.error('Error rejecting subscription:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to reject subscription';
+      alert(errorMessage);
     }
   };
 
-  const handleSuspendUser = async (userId) => {
+  const handleSuspendUser = async (userId, adminNotes = 'Account suspended by admin') => {
     if (!confirm('Are you sure you want to suspend this user?')) return;
     
     try {
-      // TODO: Replace with actual API call
+      const token = authUtils.getToken();
+      await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/admin/users/${userId}/status`,
+        {
+          is_active: false,
+          admin_notes: adminNotes
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
       setUsers(prev => prev.map(u => 
-        u.id === userId ? { ...u, status: 'suspended' } : u
+        u.id === userId ? { ...u, is_active: false, status: 'suspended' } : u
       ));
       alert('User suspended successfully');
+      
+      // Refresh users
+      fetchUsers();
     } catch (error) {
       console.error('Error suspending user:', error);
-      alert('Failed to suspend user');
+      const errorMessage = error.response?.data?.detail || 'Failed to suspend user';
+      alert(errorMessage);
     }
   };
 
-  const handleActivateUser = async (userId) => {
+  const handleActivateUser = async (userId, adminNotes = 'Account activated by admin') => {
     try {
-      // TODO: Replace with actual API call
+      const token = authUtils.getToken();
+      await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/admin/users/${userId}/status`,
+        {
+          is_active: true,
+          admin_notes: adminNotes
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
       setUsers(prev => prev.map(u => 
-        u.id === userId ? { ...u, status: 'active' } : u
+        u.id === userId ? { ...u, is_active: true, status: 'active' } : u
       ));
       alert('User activated successfully');
+      
+      // Refresh users
+      fetchUsers();
     } catch (error) {
       console.error('Error activating user:', error);
-      alert('Failed to activate user');
+      const errorMessage = error.response?.data?.detail || 'Failed to activate user';
+      alert(errorMessage);
     }
   };
 
@@ -233,16 +353,54 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteListing = async (listingId) => {
-    if (!confirm('Are you sure you want to delete this listing?')) return;
+    if (!confirm('Are you sure you want to delete this listing? This action cannot be undone.')) return;
     
     try {
-      // TODO: Replace with actual API call
+      const token = authUtils.getToken();
+      await axios.delete(
+        `${import.meta.env.VITE_BASE_URL}/admin/listings/${listingId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
       setListings(prev => prev.filter(l => l.id !== listingId));
       setStats(prev => ({ ...prev, totalListings: prev.totalListings - 1 }));
       alert('Listing deleted successfully');
+      
+      // Refresh listings
+      fetchListings();
+      fetchAdminData();
     } catch (error) {
       console.error('Error deleting listing:', error);
-      alert('Failed to delete listing');
+      const errorMessage = error.response?.data?.detail || 'Failed to delete listing';
+      alert(errorMessage);
+    }
+  };
+
+  const handleToggleListingStatus = async (listingId, isActive) => {
+    try {
+      const token = authUtils.getToken();
+      await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/admin/listings/${listingId}/status`,
+        null,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { is_active: !isActive }
+        }
+      );
+
+      setListings(prev => prev.map(l => 
+        l.id === listingId ? { ...l, is_active: !isActive } : l
+      ));
+      alert(`Listing ${!isActive ? 'activated' : 'deactivated'} successfully`);
+      
+      // Refresh listings
+      fetchListings();
+    } catch (error) {
+      console.error('Error updating listing status:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to update listing status';
+      alert(errorMessage);
     }
   };
 
@@ -483,9 +641,9 @@ export default function AdminDashboard() {
                   <table>
                     <thead>
                       <tr>
-                        <th>User</th>
-                        <th>Email</th>
+                        <th>User Email</th>
                         <th>Plan</th>
+                        <th>Transaction ID</th>
                         <th>Date</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -494,17 +652,19 @@ export default function AdminDashboard() {
                     <tbody>
                       {licenseRequests.map(request => (
                         <tr key={request.id}>
-                          <td>{request.userName}</td>
-                          <td>{request.email}</td>
+                          <td>{request.user_email || request.email || 'N/A'}</td>
                           <td>
-                            <span className={`plan-badge ${request.plan}`}>
-                              {request.plan.toUpperCase()}
+                            <span className={`plan-badge ${request.plan_type || request.plan}`}>
+                              {(request.plan_type || request.plan || 'basic').toUpperCase()}
                             </span>
                           </td>
-                          <td>{request.date}</td>
                           <td>
-                            <span className="status-badge pending">
-                              <FaClock /> Pending
+                            <code className="transaction-id">{request.transaction_id || 'N/A'}</code>
+                          </td>
+                          <td>{new Date(request.purchased_at || request.date).toLocaleDateString()}</td>
+                          <td>
+                            <span className={`status-badge ${request.status || 'pending'}`}>
+                              {request.status === 'pending' ? <><FaClock /> Pending</> : request.status}
                             </span>
                           </td>
                           <td>

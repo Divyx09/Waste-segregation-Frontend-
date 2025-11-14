@@ -10,9 +10,12 @@ import '../assets/scss/LicensePage.scss';
 export default function LicensePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [licenseStatus, setLicenseStatus] = useState(null); // null, 'pending', 'approved', 'rejected'
+  const [licenseStatus, setLicenseStatus] = useState(null); // null, 'pending', 'active', 'expired', 'rejected'
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState('basic');
+  const [selectedPlan, setSelectedPlan] = useState('monthly');
+  const [paymentMethod, setPaymentMethod] = useState('upi');
+  const [transactionId, setTransactionId] = useState('');
+  const [subscriptionHistory, setSubscriptionHistory] = useState([]);
 
   useEffect(() => {
     // Check if user is logged in
@@ -33,46 +36,95 @@ export default function LicensePage() {
 
     // TODO: Fetch license status from backend
     fetchLicenseStatus();
+    fetchSubscriptionHistory();
   }, [navigate]);
 
   const fetchLicenseStatus = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/license/status`, {
-      //   headers: { Authorization: `Bearer ${authUtils.getToken()}` }
-      // });
-      // setLicenseStatus(response.data.status);
+      const token = authUtils.getToken();
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/subscriptions/status`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
       
-      // Demo: Check localStorage for demo purposes
-      const demoStatus = localStorage.getItem('licenseStatus');
-      setLicenseStatus(demoStatus);
+      if (response.data && response.data.status) {
+        setLicenseStatus(response.data.status);
+      }
     } catch (error) {
-      console.error('Error fetching license status:', error);
+      console.error('Error fetching subscription status:', error);
+      if (error.response?.status === 404) {
+        // No subscription found
+        setLicenseStatus(null);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const fetchSubscriptionHistory = async () => {
+    try {
+      const token = authUtils.getToken();
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/subscriptions/history`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      if (response.data && Array.isArray(response.data)) {
+        setSubscriptionHistory(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching subscription history:', error);
+    }
+  };
+
   const handleRequestLicense = async () => {
+    // Validate inputs
+    if (!transactionId.trim()) {
+      alert('Please enter your transaction ID');
+      return;
+    }
+
+    if (!paymentMethod) {
+      alert('Please select a payment method');
+      return;
+    }
+
     try {
       setIsLoading(true);
 
-      // TODO: Replace with actual API call
-      // const response = await axios.post(
-      //   `${import.meta.env.VITE_BASE_URL}/license/request`,
-      //   { plan: selectedPlan },
-      //   { headers: { Authorization: `Bearer ${authUtils.getToken()}` } }
-      // );
+      const token = authUtils.getToken();
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/subscriptions/purchase`,
+        {
+          plan_type: selectedPlan,
+          payment_method: paymentMethod,
+          transaction_id: transactionId
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
 
-      // Demo: Store in localStorage
-      localStorage.setItem('licenseStatus', 'pending');
-      localStorage.setItem('licensePlan', selectedPlan);
-      setLicenseStatus('pending');
-
-      alert('License request submitted successfully! Admin will review your request.');
+      if (response.data) {
+        setLicenseStatus('pending');
+        setTransactionId('');
+        alert('Subscription request submitted successfully! Admin will verify your payment and approve your request.');
+        
+        // Refresh status and history
+        await fetchLicenseStatus();
+        await fetchSubscriptionHistory();
+      }
     } catch (error) {
-      console.error('Error requesting license:', error);
-      alert('Failed to submit license request. Please try again.');
+      console.error('Error purchasing subscription:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to submit subscription request. Please try again.';
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -86,8 +138,8 @@ export default function LicensePage() {
 
   const plans = [
     {
-      id: 'basic',
-      name: 'Basic',
+      id: 'monthly',
+      name: 'Monthly Plan',
       price: '₹999',
       period: '/month',
       features: [
@@ -161,15 +213,15 @@ export default function LicensePage() {
             {licenseStatus === 'pending' && (
               <>
                 <FaClock className="status-icon" />
-                <h3>License Request Pending</h3>
-                <p>Your license request is under review. Admin will approve it shortly.</p>
+                <h3>Subscription Request Pending</h3>
+                <p>Your subscription request is under review. Admin will verify payment and approve it shortly.</p>
               </>
             )}
-            {licenseStatus === 'approved' && (
+            {licenseStatus === 'active' && (
               <>
                 <FaCheckCircle className="status-icon" />
-                <h3>License Approved!</h3>
-                <p>Your license has been approved. Download the desktop application below.</p>
+                <h3>Subscription Active!</h3>
+                <p>Your subscription has been approved. Download the desktop application below.</p>
                 <button className="download-btn" onClick={handleDownloadApp}>
                   <FaDownload /> Download Desktop App
                 </button>
@@ -178,15 +230,22 @@ export default function LicensePage() {
             {licenseStatus === 'rejected' && (
               <>
                 <FaTimesCircle className="status-icon" />
-                <h3>License Request Rejected</h3>
-                <p>Your license request was not approved. Please contact support for more information.</p>
+                <h3>Subscription Request Rejected</h3>
+                <p>Your subscription request was not approved. Please contact support for more information.</p>
+              </>
+            )}
+            {licenseStatus === 'expired' && (
+              <>
+                <FaClock className="status-icon" />
+                <h3>Subscription Expired</h3>
+                <p>Your subscription has expired. Please renew to continue using the desktop application.</p>
               </>
             )}
           </div>
         )}
 
-        {/* Plans Section - Show only if no license or rejected */}
-        {(!licenseStatus || licenseStatus === 'rejected') && (
+        {/* Plans Section - Show only if no license or rejected or expired */}
+        {(!licenseStatus || licenseStatus === 'rejected' || licenseStatus === 'expired') && (
           <>
             <div className="plans-section">
               <h2>Choose Your Plan</h2>
@@ -242,17 +301,63 @@ export default function LicensePage() {
               </div>
             </div>
 
-            <div className="request-section">
-              <button
-                className="request-btn"
-                onClick={handleRequestLicense}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Processing...' : 'Request License'}
-              </button>
-              <p className="request-note">
-                After submitting, admin will review your request within 24-48 hours
-              </p>
+            <div className="payment-section">
+              <h2>Payment Information</h2>
+              <p className="payment-note">Complete your payment and submit the transaction details below</p>
+              
+              <div className="payment-form">
+                <div className="form-group">
+                  <label htmlFor="paymentMethod">Payment Method</label>
+                  <select
+                    id="paymentMethod"
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="form-control"
+                  >
+                    <option value="upi">UPI</option>
+                    <option value="netbanking">Net Banking</option>
+                    <option value="card">Credit/Debit Card</option>
+                    <option value="wallet">Wallet</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="transactionId">Transaction ID *</label>
+                  <input
+                    type="text"
+                    id="transactionId"
+                    value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    placeholder="Enter your transaction ID"
+                    className="form-control"
+                    required
+                  />
+                  <small className="form-hint">
+                    Complete your payment and enter the transaction ID received
+                  </small>
+                </div>
+
+                <div className="payment-instructions">
+                  <h4>Payment Instructions:</h4>
+                  <ol>
+                    <li>Complete payment using your preferred method</li>
+                    <li>Note down your transaction ID</li>
+                    <li>Enter the transaction ID above</li>
+                    <li>Submit for admin verification</li>
+                  </ol>
+                </div>
+
+                <button
+                  className="request-btn"
+                  onClick={handleRequestLicense}
+                  disabled={isLoading || !transactionId.trim()}
+                >
+                  {isLoading ? 'Processing...' : 'Submit Subscription Request'}
+                </button>
+                <p className="request-note">
+                  After submitting, admin will verify your payment and approve your subscription within 24-48 hours
+                </p>
+              </div>
             </div>
           </>
         )}
